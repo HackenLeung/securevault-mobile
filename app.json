@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "SecureVault",
+    "slug": "securevault",
+    "scheme": "securevault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "SecureVault uses Face ID to unlock your local vault."
+      }
+    },
+    "android": {
+      "allowBackup": false,
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": [],
+      "package": "com.anonymous.securevault"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+
+# Expo / Metro
+.expo/
+.expo-shared/
+.expo/web/cache/
+.metro-cache/
+dist/
+web-build/
+
+# Generated Expo env types
+expo-env.d.ts
+
+# Native build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/.cxx/
+android/local.properties
+android/app/.cxx/
+android/app/release/
+android/app/debug/
+
+# Android Studio / IntelliJ local files
+.idea/
+*.iml
+
+# Signing keys and local secrets
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.env
+*.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+expo-start.log
+expo-start.err.log
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Build/test caches
+coverage/
+.nyc_output/
+.cache/
+tmp/
+temp/
+
+# Local docs or scratch notes
+说明/

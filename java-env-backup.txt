@@ -1,0 +1,2 @@
+﻿JAVA_HOME=D:\jdk-10.0.1
+Path=C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;%NVM_H;ME%;C:\Program Files\nodejs;C:\Program Files\Git\cmd;C:\Program Files\Bandizip\;C:\Program Files\dotnet\;D:\platform-tools-latest-windows\platform-tools;D:\apache-maven-3.9.9-bin\apache-maven-3.9.9\bin;D:\jdk-10.0.1\bin;D:\jdk-10.0.1\jre\bin;;D:\微信web开发者工具\dll
