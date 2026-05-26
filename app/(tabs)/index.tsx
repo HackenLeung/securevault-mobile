@@ -1,6 +1,6 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { MagnifyingGlass, Lightning, Plus, Star, User } from "phosphor-react-native";
+import { MagnifyingGlass, Lightning, Plus, Star, Gear } from "phosphor-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -16,8 +16,10 @@ import {
   UIManager,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Badge, Card } from "@/components/ui";
+import { useFabMenu } from "@/providers/fab-menu";
+import { useLanguage } from "@/providers/language";
 import { categoryMeta, maskAccount, VaultCategory, vaultItems } from "@/data/vault";
 import { colors, radii, shadow, spacing } from "@/theme/tokens";
 
@@ -30,11 +32,15 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 export default function HomeScreen() {
   const [category, setCategory] = useState<"all" | VaultCategory>("all");
   const [query, setQuery] = useState("");
-  const [fabOpen, setFabOpen] = useState(false);
   const [showPinned, setShowPinned] = useState(true);
+  const [tabsWidth, setTabsWidth] = useState(0);
+  const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
+  const { fabOpen, setFabOpen } = useFabMenu();
 
   const pinnedAnim = useRef(new Animated.Value(1)).current;
-  const fabAnim = useRef(new Animated.Value(0)).current;
+  const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
+  const floatingBottom = Math.max(insets.bottom + 36, 36);
 
   const filtered = useMemo(() => {
     return vaultItems.filter((item) => {
@@ -56,13 +62,15 @@ export default function HomeScreen() {
   }, [pinnedAnim, showPinned]);
 
   useEffect(() => {
-    Animated.timing(fabAnim, {
-      toValue: fabOpen ? 1 : 0,
+    const tabIndex = tabs.indexOf(category);
+
+    Animated.timing(tabIndicatorAnim, {
+      toValue: tabsWidth > 0 ? (tabsWidth / tabs.length) * tabIndex : 0,
       duration: 220,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [fabAnim, fabOpen]);
+  }, [category, tabIndicatorAnim, tabsWidth]);
 
   const copyPassword = async (password?: string) => {
     if (password) await Clipboard.setStringAsync(password);
@@ -79,39 +87,33 @@ export default function HomeScreen() {
   };
 
   const toggleFab = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setFabOpen((value) => !value);
+    setFabOpen(!fabOpen);
+  };
+
+  const navigateFromFab = (path: "/quick-entry" | "/add-password" | "/settings") => {
+    setFabOpen(false);
+    router.push(path);
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.content}>
         <View style={styles.fixedTop}>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>SecureVault</Text>
-              <Text style={styles.subtitle}>{vaultItems.length} passwords stored</Text>
-            </View>
-            <View style={styles.avatar}>
-              <User size={22} color={colors.textMuted} weight="regular" />
-            </View>
-          </View>
-
           <View style={styles.search}>
             <MagnifyingGlass size={18} color={colors.textSubtle} weight="regular" />
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search passwords..."
+              placeholder={t("home.searchPlaceholder")}
               placeholderTextColor={colors.textSubtle}
               style={styles.searchInput}
             />
           </View>
 
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Pinned</Text>
+            <Text style={styles.sectionTitle}>{t("home.pinned")}</Text>
             <Pressable onPress={togglePinned} hitSlop={8}>
-              <Text style={styles.link}>{showPinned ? "Hide" : "Show"}</Text>
+              <Text style={styles.link}>{showPinned ? t("common.hide") : t("common.show")}</Text>
             </Pressable>
           </View>
 
@@ -139,8 +141,12 @@ export default function HomeScreen() {
                       <Text style={[styles.initialText, { color: categoryMeta[item.category].color }]}>{item.title[0]}</Text>
                     </View>
                     <View style={styles.pinnedText}>
-                      <Text style={styles.itemTitle}>{item.title}</Text>
-                      <Text style={styles.itemSub}>{maskAccount(item.username)}</Text>
+                      <Text style={styles.itemTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.itemSub} numberOfLines={1}>
+                        {maskAccount(item.username)}
+                      </Text>
                     </View>
                     <Star size={18} color={colors.favorite} weight="regular" />
                   </Card>
@@ -149,13 +155,35 @@ export default function HomeScreen() {
             </ScrollView>
           </Animated.View>
 
-          <View style={styles.tabs}>
+          <View style={styles.tabs} onLayout={(event) => setTabsWidth(event.nativeEvent.layout.width)}>
+            {tabsWidth > 0 ? (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.tabIndicator,
+                  {
+                    width: tabsWidth / tabs.length - 4,
+                    transform: [{ translateX: tabIndicatorAnim }],
+                  },
+                ]}
+              />
+            ) : null}
             {tabs.map((tab) => {
               const active = tab === category;
               return (
-                <Pressable key={tab} onPress={() => selectCategory(tab)} style={[styles.tab, active && styles.activeTab]}>
+                <Pressable key={tab} onPress={() => selectCategory(tab)} style={styles.tab}>
                   <Text style={[styles.tabText, active && styles.activeTabText]}>
-                    {tab === "all" ? "All" : categoryMeta[tab].label + (tab === "website" ? "s" : tab === "app" ? "s" : tab === "note" ? "s" : "")}
+                    {tab === "all"
+                      ? t("category.all")
+                      : t(
+                          tab === "website"
+                            ? "category.website.plural"
+                            : tab === "app"
+                              ? "category.app.plural"
+                              : tab === "wifi"
+                                ? "category.wifi.plural"
+                                : "category.note.plural",
+                        )}
                   </Text>
                 </Pressable>
               );
@@ -184,16 +212,20 @@ export default function HomeScreen() {
                       <Text style={[styles.initialText, { color: meta.color }]}>{item.title[0]}</Text>
                     </View>
                     <View style={styles.itemText}>
-                      <Text style={styles.itemTitle}>{item.title}</Text>
-                      <Text style={styles.itemSub}>{item.category === "note" ? item.note : item.username}</Text>
+                      <Text style={styles.itemTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.itemSub} numberOfLines={1}>
+                        {item.category === "note" ? item.note : item.username}
+                      </Text>
                     </View>
                     {item.status ? (
-                      <Badge color={colors.green} soft={colors.greenSoft}>{item.status}</Badge>
+                      <Badge color={colors.green} soft={colors.greenSoft}>{t("status.active")}</Badge>
                     ) : item.category === "note" ? (
-                      <Badge color={colors.warning} soft={colors.warningSoft}>Note</Badge>
+                      <Badge color={colors.warning} soft={colors.warningSoft}>{t("common.note")}</Badge>
                     ) : (
                       <Pressable onPress={() => copyPassword(item.password)} style={styles.copyPill}>
-                        <Text style={styles.copyText}>Copy</Text>
+                        <Text style={styles.copyText}>{t("common.copy")}</Text>
                       </Pressable>
                     )}
                   </Card>
@@ -204,56 +236,40 @@ export default function HomeScreen() {
         />
       </View>
 
-      <Animated.View
-        pointerEvents={fabOpen ? "auto" : "none"}
-        style={[
-          styles.overlay,
-          {
-            opacity: fabAnim,
-          },
-        ]}
-      >
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setFabOpen(false)} />
-        <Animated.View
-          style={[
-            styles.fabMenu,
-            {
-              opacity: fabAnim,
-              transform: [
-                {
-                  translateY: fabAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [16, 0],
-                  }),
-                },
-                {
-                  scale: fabAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.92, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Pressable style={styles.menuItem} onPress={() => router.push("/quick-entry")}>
-            <View style={[styles.menuIcon, { backgroundColor: colors.purpleSoft }]}>
-              <Lightning size={16} color={colors.purple} weight="regular" />
-            </View>
-            <Text style={styles.menuText}>Quick Entry</Text>
-          </Pressable>
-          <Pressable style={styles.menuItem} onPress={() => router.push("/add-password")}>
-            <View style={[styles.menuIcon, { backgroundColor: colors.primarySoft }]}>
-              <Plus size={17} color={colors.primary} weight="bold" />
-            </View>
-            <Text style={styles.menuText}>Add Password</Text>
-          </Pressable>
-        </Animated.View>
-      </Animated.View>
+      <View pointerEvents="box-none" style={styles.fabLayer}>
+        {fabOpen ? (
+          <Pressable style={styles.overlay} onPress={() => setFabOpen(false)} />
+        ) : null}
 
-      <Pressable style={styles.fab} onPress={toggleFab}>
-        <Plus color="#FFFFFF" size={30} weight="bold" />
-      </Pressable>
+        <View pointerEvents="box-none" style={[styles.floatingActions, { bottom: floatingBottom }]}>
+          {fabOpen ? (
+            <View style={styles.fabMenu}>
+              <Pressable style={styles.menuItem} onPress={() => navigateFromFab("/quick-entry")}>
+                <View style={[styles.menuIcon, { backgroundColor: colors.purpleSoft }]}>
+                  <Lightning size={16} color={colors.purple} weight="regular" />
+                </View>
+                <Text style={styles.menuText}>{t("home.quickEntry")}</Text>
+              </Pressable>
+              <Pressable style={styles.menuItem} onPress={() => navigateFromFab("/add-password")}>
+                <View style={[styles.menuIcon, { backgroundColor: colors.primarySoft }]}>
+                  <Plus size={17} color={colors.primary} weight="bold" />
+                </View>
+                <Text style={styles.menuText}>{t("home.addPassword")}</Text>
+              </Pressable>
+              <Pressable style={styles.menuItem} onPress={() => navigateFromFab("/settings")}>
+                <View style={[styles.menuIcon, { backgroundColor: colors.warningSoft }]}>
+                  <Gear size={16} color={colors.warning} weight="regular" />
+                </View>
+                <Text style={styles.menuText}>{t("tabs.settings")}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <Pressable style={styles.fab} onPress={toggleFab}>
+            <Plus color="#FFFFFF" size={30} weight="bold" />
+          </Pressable>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -263,22 +279,6 @@ const styles = StyleSheet.create({
   content: { flex: 1, padding: spacing.xl },
   fixedTop: {
     zIndex: 1,
-  },
-  header: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: spacing.xxl,
-  },
-  title: { color: colors.text, fontSize: 26, fontWeight: "800" },
-  subtitle: { color: colors.textSubtle, fontSize: 13, marginTop: 2 },
-  avatar: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: 20,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
   },
   search: {
     alignItems: "center",
@@ -310,6 +310,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     height: 80,
+    shadowOpacity: 0,
     width: 180,
   },
   initial: {
@@ -325,7 +326,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     borderRadius: radii.md,
     flexDirection: "row",
+    position: "relative",
     padding: 2,
+  },
+  tabIndicator: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    bottom: 2,
+    left: 2,
+    position: "absolute",
+    top: 2,
   },
   tab: {
     alignItems: "center",
@@ -333,8 +343,8 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 38,
     justifyContent: "center",
+    zIndex: 1,
   },
-  activeTab: { backgroundColor: colors.primary },
   tabText: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },
   activeTabText: { color: "#FFFFFF" },
   listScroller: {
@@ -371,13 +381,21 @@ const styles = StyleSheet.create({
   copyText: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15, 23, 42, 0.32)",
+    backgroundColor: "rgba(15, 23, 42, 0.14)",
   },
-  fabMenu: {
-    bottom: 84,
-    gap: spacing.sm,
+  fabLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+  },
+  floatingActions: {
+    alignItems: "flex-end",
     position: "absolute",
     right: spacing.xl,
+    zIndex: 21,
+  },
+  fabMenu: {
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   menuItem: {
     alignItems: "center",
@@ -402,11 +420,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.primary,
     borderRadius: 28,
-    bottom: 24,
     height: 56,
     justifyContent: "center",
-    position: "absolute",
-    right: spacing.xl,
     width: 56,
     ...shadow,
   },

@@ -1,36 +1,29 @@
 import { Tabs } from "expo-router";
-import { House, Gear } from "phosphor-react-native";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/providers/theme";
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          height: 72,
-          paddingBottom: 14,
-          paddingTop: 8,
+          display: "none",
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <House color={color} size={size} weight="regular" />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
+          href: null,
           title: "Settings",
-          tabBarIcon: ({ color, size }) => <Gear color={color} size={size} weight="regular" />,
         }}
       />
     </Tabs>

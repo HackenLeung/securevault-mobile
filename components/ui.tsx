@@ -1,13 +1,32 @@
 import { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View } from "react-native";
-import { colors, radii, shadow, spacing } from "@/theme/tokens";
+import { useTheme } from "@/providers/theme";
+import { radii, shadow, spacing } from "@/theme/tokens";
 
 export function Screen({ children, padded = true }: { children: ReactNode; padded?: boolean }) {
-  return <View style={[styles.screen, padded && styles.screenPadding]}>{children}</View>;
+  const { colors } = useTheme();
+
+  return <View style={[styles.screen, { backgroundColor: colors.bg }, padded && styles.screenPadding]}>{children}</View>;
 }
 
 export function Card({ children, style }: { children: ReactNode; style?: object }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const { colors, theme } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          shadowOpacity: theme === "dark" ? 0 : shadow.shadowOpacity,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 export function Button({
@@ -21,43 +40,51 @@ export function Button({
   variant?: "primary" | "secondary" | "ghost";
   style?: object;
 }) {
+  const { colors } = useTheme();
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        variant === "primary" && styles.buttonPrimary,
-        variant === "secondary" && styles.buttonSecondary,
+        variant === "primary" && { backgroundColor: colors.primary },
+        variant === "secondary" && { backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
         variant === "ghost" && styles.buttonGhost,
         pressed && { opacity: 0.78, transform: [{ scale: 0.99 }] },
         style,
       ]}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          variant === "primary" && styles.buttonPrimaryText,
-          variant !== "primary" && styles.buttonSecondaryText,
-        ]}
-      >
-        {children}
-      </Text>
+      <Text style={[styles.buttonText, variant === "primary" ? styles.buttonPrimaryText : { color: colors.primary }]}>{children}</Text>
     </Pressable>
   );
 }
 
 export function Field(props: TextInputProps) {
-  return <TextInput placeholderTextColor={colors.textSubtle} style={styles.input} {...props} />;
+  const { colors } = useTheme();
+
+  return (
+    <TextInput
+      placeholderTextColor={colors.textSubtle}
+      style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }, props.style]}
+      {...props}
+    />
+  );
 }
 
 export function SectionLabel({ children }: { children: ReactNode }) {
-  return <Text style={styles.sectionLabel}>{children}</Text>;
+  const { colors } = useTheme();
+
+  return <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>{children}</Text>;
 }
 
-export function Badge({ children, color = colors.primary, soft = colors.primarySoft }: { children: ReactNode; color?: string; soft?: string }) {
+export function Badge({ children, color, soft }: { children: ReactNode; color?: string; soft?: string }) {
+  const { colors } = useTheme();
+  const badgeColor = color ?? colors.primary;
+  const badgeSoft = soft ?? colors.primarySoft;
+
   return (
-    <View style={[styles.badge, { backgroundColor: soft }]}>
-      <Text style={[styles.badgeText, { color }]}>{children}</Text>
+    <View style={[styles.badge, { backgroundColor: badgeSoft }]}>
+      <Text style={[styles.badgeText, { color: badgeColor }]}>{children}</Text>
     </View>
   );
 }
@@ -65,14 +92,11 @@ export function Badge({ children, color = colors.primary, soft = colors.primaryS
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.bg,
   },
   screenPadding: {
     paddingHorizontal: spacing.xl,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
     borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.lg,
@@ -83,14 +107,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     height: 48,
     justifyContent: "center",
-  },
-  buttonPrimary: {
-    backgroundColor: colors.primary,
-  },
-  buttonSecondary: {
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   buttonGhost: {
     backgroundColor: "transparent",
@@ -103,21 +119,14 @@ const styles = StyleSheet.create({
   buttonPrimaryText: {
     color: "#FFFFFF",
   },
-  buttonSecondaryText: {
-    color: colors.primary,
-  },
   input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
-    color: colors.text,
     fontSize: 15,
     height: 48,
     paddingHorizontal: spacing.lg,
   },
   sectionLabel: {
-    color: colors.textMuted,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: spacing.sm,

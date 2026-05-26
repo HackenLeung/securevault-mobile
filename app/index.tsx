@@ -5,12 +5,16 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Field } from "@/components/ui";
+import { useLanguage } from "@/providers/language";
+import { useTheme } from "@/providers/theme";
 import { verifyMasterPassword } from "@/services/security";
-import { colors, spacing } from "@/theme/tokens";
+import { spacing } from "@/theme/tokens";
 
 export default function LockScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const { t } = useLanguage();
+  const { colors } = useTheme();
 
   const runImpactHaptic = async () => {
     if (Platform.OS === "web") return;
@@ -29,32 +33,32 @@ export default function LockScreen() {
       router.replace("/(tabs)");
       return;
     }
-    setError("Wrong master password");
+    setError(t("lock.wrongMasterPassword"));
     await runErrorHaptic();
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
         <View style={styles.brandBlock}>
           <View style={styles.shield}>
             <ShieldChevron size={58} color={colors.primary} weight="regular" />
           </View>
-          <Text style={styles.brand}>SecureVault</Text>
+          <Text style={[styles.brand, { color: colors.textMuted }]}>SecureVault</Text>
         </View>
 
         <Pressable style={styles.fingerprint} onPress={unlock}>
-          <View style={styles.fingerprintIcon}>
+          <View style={[styles.fingerprintIcon, { backgroundColor: colors.primarySoft }]}>
             <Fingerprint size={46} color={colors.primary} weight="regular" />
           </View>
-          <Text style={styles.title}>Touch to unlock</Text>
-          <Text style={styles.subtitle}>Use your fingerprint to quickly unlock</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("lock.touchToUnlock")}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSubtle }]}>{t("lock.useFingerprint")}</Text>
         </Pressable>
 
         <View style={styles.dividerRow}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>or use master password</Text>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Text style={[styles.dividerText, { color: colors.textSubtle }]}>{t("lock.orUseMasterPassword")}</Text>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
         </View>
 
         <View style={styles.inputWrap}>
@@ -62,21 +66,21 @@ export default function LockScreen() {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
-            placeholder="Enter master password"
+            placeholder={t("lock.masterPasswordPlaceholder")}
             onSubmitEditing={unlock}
           />
           <Eye size={20} color={colors.textSubtle} weight="regular" style={styles.eye} />
         </View>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button onPress={unlock}>Unlock</Button>
-        <Button variant="ghost">Forgot password?</Button>
+        {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+        <Button onPress={unlock}>{t("lock.unlock")}</Button>
+        <Button variant="ghost">{t("lock.forgotPassword")}</Button>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1 },
   container: {
     flex: 1,
     justifyContent: "center",
@@ -93,7 +97,6 @@ const styles = StyleSheet.create({
     width: 112,
   },
   brand: {
-    color: colors.textMuted,
     fontSize: 13,
   },
   fingerprint: {
@@ -101,7 +104,6 @@ const styles = StyleSheet.create({
   },
   fingerprintIcon: {
     alignItems: "center",
-    backgroundColor: colors.primarySoft,
     borderRadius: 20,
     height: 72,
     justifyContent: "center",
@@ -109,12 +111,10 @@ const styles = StyleSheet.create({
     width: 72,
   },
   title: {
-    color: colors.text,
     fontSize: 18,
     fontWeight: "700",
   },
   subtitle: {
-    color: colors.textSubtle,
     fontSize: 13,
     marginTop: spacing.sm,
   },
@@ -125,12 +125,10 @@ const styles = StyleSheet.create({
     marginVertical: 44,
   },
   divider: {
-    backgroundColor: colors.border,
     flex: 1,
     height: StyleSheet.hairlineWidth,
   },
   dividerText: {
-    color: colors.textSubtle,
     fontSize: 12,
   },
   inputWrap: {
@@ -142,7 +140,6 @@ const styles = StyleSheet.create({
     top: 14,
   },
   error: {
-    color: colors.danger,
     fontSize: 12,
     marginBottom: spacing.md,
     marginLeft: spacing.sm,

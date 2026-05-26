@@ -1,17 +1,36 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { FabMenuProvider } from "@/providers/fab-menu";
+import { LanguageProvider } from "@/providers/language";
+import { ThemeProvider, useTheme } from "@/providers/theme";
 
-export default function RootLayout() {
+function RootStack() {
+  const { theme } = useTheme();
+
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add-password" />
+        <Stack.Screen name="language" />
+        <Stack.Screen name="theme" />
         <Stack.Screen name="quick-entry" />
         <Stack.Screen name="password-detail/[id]" />
       </Stack>
     </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <FabMenuProvider>
+          <RootStack />
+        </FabMenuProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

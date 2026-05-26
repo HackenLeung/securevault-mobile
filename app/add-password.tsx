@@ -4,12 +4,14 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Card, Field, SectionLabel } from "@/components/ui";
-import { categoryMeta, VaultCategory } from "@/data/vault";
+import { VaultCategory } from "@/data/vault";
+import { useLanguage } from "@/providers/language";
 import { colors, radii, spacing } from "@/theme/tokens";
 
 const categories: VaultCategory[] = ["website", "app", "wifi", "note"];
 
 export default function AddPasswordScreen() {
+  const { t } = useLanguage();
   const [category, setCategory] = useState<VaultCategory>("website");
   const [password, setPassword] = useState("xK#9mP$2wLq&");
   const [favorite, setFavorite] = useState(false);
@@ -23,45 +25,54 @@ export default function AddPasswordScreen() {
         <Pressable onPress={() => router.back()} style={styles.navButton}>
           <CaretLeft size={28} color={colors.text} weight="bold" />
         </Pressable>
-        <Text style={styles.navTitle}>Add Password</Text>
+        <Text style={styles.navTitle}>{t("addPassword.title")}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.save}>Save</Text>
+          <Text style={styles.save}>{t("common.save")}</Text>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <SectionLabel>Category</SectionLabel>
+        <SectionLabel>{t("addPassword.category")}</SectionLabel>
         <View style={styles.chips}>
           {categories.map((item) => {
             const active = item === category;
-            const meta = categoryMeta[item];
             return (
-              <Pressable key={item} onPress={() => setCategory(item)} style={[styles.chip, active && { backgroundColor: meta.soft, borderColor: meta.color }]}>
-                <Text style={[styles.chipText, active && { color: meta.color }]}>{meta.label}</Text>
+              <Pressable key={item} onPress={() => setCategory(item)} style={[styles.chip, active && styles.chipActive]}>
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {t(
+                    item === "website"
+                      ? "category.website"
+                      : item === "app"
+                        ? "category.app"
+                        : item === "wifi"
+                          ? "category.wifi"
+                          : "category.note",
+                  )}
+                </Text>
               </Pressable>
             );
           })}
         </View>
 
         <View style={styles.form}>
-          <SectionLabel>{category === "wifi" ? "SSID" : "Title"}</SectionLabel>
+          <SectionLabel>{category === "wifi" ? t("addPassword.field.ssid") : t("addPassword.field.title")}</SectionLabel>
           <Field defaultValue={category === "wifi" ? "Home WiFi 5G" : category === "note" ? "Office Safe Code" : "Taobao"} />
 
           {category === "website" ? (
             <>
-              <SectionLabel>Website URL</SectionLabel>
+              <SectionLabel>{t("addPassword.field.websiteUrl")}</SectionLabel>
               <Field defaultValue="https://taobao.com" />
             </>
           ) : null}
 
           {category !== "note" ? (
             <>
-              <SectionLabel>{category === "wifi" ? "Security" : "Username / Email"}</SectionLabel>
+              <SectionLabel>{category === "wifi" ? t("addPassword.field.security") : t("addPassword.field.usernameEmail")}</SectionLabel>
               <Field defaultValue={category === "wifi" ? "WPA2" : "13800138000"} />
             </>
           ) : null}
 
-          <SectionLabel>{category === "note" ? "Secret" : "Password"}</SectionLabel>
+          <SectionLabel>{category === "note" ? t("addPassword.field.secret") : t("addPassword.field.password")}</SectionLabel>
           <View>
             <Field value={password} onChangeText={setPassword} secureTextEntry={false} style={styles.monoInput} />
             <Eye size={20} color={colors.primary} weight="regular" style={styles.eye} />
@@ -70,11 +81,11 @@ export default function AddPasswordScreen() {
             <View style={styles.strengthFill} />
           </View>
           <View style={styles.strengthRow}>
-            <Text style={styles.strong}>Strong</Text>
-            <Text style={styles.length}>{password.length} characters</Text>
+            <Text style={styles.strong}>{t("addPassword.passwordStrong")}</Text>
+            <Text style={styles.length}>{password.length} {t("addPassword.passwordCharacters")}</Text>
           </View>
 
-          <Button variant="secondary">Generate new password</Button>
+          <Button variant="secondary">{t("addPassword.generatePassword")}</Button>
         </View>
 
         <Card style={styles.generator}>
@@ -87,32 +98,37 @@ export default function AddPasswordScreen() {
             </View>
           </View>
           <View style={styles.sliderHeader}>
-            <Text style={styles.generatorLabel}>Length</Text>
+            <Text style={styles.generatorLabel}>{t("addPassword.generator.length")}</Text>
             <Text style={styles.sliderValue}>16</Text>
           </View>
           <View style={styles.slider}>
             <View style={styles.sliderFill} />
             <View style={styles.sliderKnob} />
           </View>
-          <Text style={styles.generatorLabel}>Characters</Text>
+          <Text style={styles.generatorLabel}>{t("addPassword.generator.characters")}</Text>
           <View style={styles.optionsGrid}>
-            {["A-Z Uppercase", "a-z Lowercase", "0-9 Numbers", "!@#$ Symbols"].map((option) => (
+            {[
+              t("addPassword.generator.uppercase"),
+              t("addPassword.generator.lowercase"),
+              t("addPassword.generator.numbers"),
+              t("addPassword.generator.symbols"),
+            ].map((option) => (
               <View key={option} style={styles.option}>
                 <Text style={styles.optionText}>{option}</Text>
                 <CheckCircle size={18} color={colors.primary} weight="fill" />
               </View>
             ))}
           </View>
-          <Button onPress={() => setPassword(generated)}>Use this password</Button>
+          <Button onPress={() => setPassword(generated)}>{t("addPassword.generator.usePassword")}</Button>
         </Card>
 
-        <SectionLabel>Advanced</SectionLabel>
-        <SettingSwitch title="Password expiry reminder" subtitle="Get notified when password needs changing" value={expiry} onPress={() => setExpiry(!expiry)} />
-        <SettingSwitch title="Add to favorites" subtitle="Pin to top for quick access" value={favorite} onPress={() => setFavorite(!favorite)} icon="star" />
+        <SectionLabel>{t("addPassword.advanced")}</SectionLabel>
+        <SettingSwitch title={t("addPassword.expiryTitle")} subtitle={t("addPassword.expirySubtitle")} value={expiry} onPress={() => setExpiry(!expiry)} />
+        <SettingSwitch title={t("addPassword.favoriteTitle")} subtitle={t("addPassword.favoriteSubtitle")} value={favorite} onPress={() => setFavorite(!favorite)} icon="star" />
 
-        <SectionLabel>Notes (optional)</SectionLabel>
-        <Field multiline defaultValue="" placeholder="Add any extra information here..." style={styles.notes} />
-        <Button onPress={() => router.back()} style={styles.bottomSave}>Save Password</Button>
+        <SectionLabel>{t("addPassword.notesOptional")}</SectionLabel>
+        <Field multiline defaultValue="" placeholder={t("addPassword.notesPlaceholder")} style={styles.notes} />
+        <Button onPress={() => router.back()} style={styles.bottomSave}>{t("addPassword.savePassword")}</Button>
       </ScrollView>
     </SafeAreaView>
   );
@@ -162,6 +178,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   chipText: { color: colors.textMuted, fontSize: 13, fontWeight: "800" },
+  chipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  chipTextActive: { color: colors.primary },
   form: { gap: spacing.md },
   monoInput: { fontFamily: "monospace" },
   eye: { position: "absolute", right: spacing.lg, top: 14 },

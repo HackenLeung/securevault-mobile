@@ -3,80 +3,83 @@ import { ArrowsLeftRight, Camera, CaretLeft, Check, ClipboardText, ListBullets }
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, Button, Card } from "@/components/ui";
+import { useLanguage } from "@/providers/language";
 import { colors, radii, spacing } from "@/theme/tokens";
 
 export default function QuickEntryScreen() {
+  const { t } = useLanguage();
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.nav}>
         <Pressable onPress={() => router.back()} style={styles.back}>
           <CaretLeft size={28} color={colors.text} weight="bold" />
         </Pressable>
-        <Text style={styles.navTitle}>Quick Entry</Text>
+        <Text style={styles.navTitle}>{t("quickEntry.title")}</Text>
         <View style={{ width: 32 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <EntryCard
           icon="clipboard"
-          title="Paste text"
-          description="Paste account info, auto extract"
-          detail="username, password, website"
-          action="Paste  >"
+          title={t("quickEntry.pasteText")}
+          description={t("quickEntry.pasteDescription")}
+          detail={t("quickEntry.pasteDetail")}
+          action={t("quickEntry.pasteAction")}
           color={colors.primary}
           soft={colors.primarySoft}
         />
         <EntryCard
           icon="camera"
-          title="Scan screenshot"
-          description="OCR recognize text from image"
-          detail="Auto detect login forms"
-          action="Scan  >"
+          title={t("quickEntry.scanTitle")}
+          description={t("quickEntry.scanDescription")}
+          detail={t("quickEntry.scanDetail")}
+          action={t("quickEntry.scanAction")}
           color={colors.green}
           soft={colors.greenSoft}
         />
 
         <View style={styles.orRow}>
           <View style={styles.line} />
-          <Text style={styles.or}>or</Text>
+          <Text style={styles.or}>{t("common.or")}</Text>
           <View style={styles.line} />
         </View>
 
         <Pressable style={styles.manual} onPress={() => router.push("/add-password")}>
           <ListBullets size={20} color={colors.textMuted} weight="regular" />
           <View>
-            <Text style={styles.manualTitle}>Manual entry</Text>
-            <Text style={styles.manualSub}>Fill in the form step by step</Text>
+            <Text style={styles.manualTitle}>{t("quickEntry.manualEntry")}</Text>
+            <Text style={styles.manualSub}>{t("quickEntry.manualDescription")}</Text>
           </View>
         </Pressable>
 
         <Card style={styles.resultPanel}>
           <View style={styles.handle} />
           <View style={styles.panelHeader}>
-            <Text style={styles.panelTitle}>Recognition Result</Text>
-            <Badge>2 found</Badge>
+            <Text style={styles.panelTitle}>{t("quickEntry.resultTitle")}</Text>
+            <Badge>{t("quickEntry.foundCount")}</Badge>
           </View>
           <View style={styles.preview}>
-            <Text style={styles.previewLabel}>Original text</Text>
-            <Text style={styles.previewText}>Website: taobao.com</Text>
+            <Text style={styles.previewLabel}>{t("quickEntry.originalText")}</Text>
+            <Text style={styles.previewText}>{t("common.website")}: taobao.com</Text>
           </View>
-          <DetectedEntry index={1} title="Taobao" subtitle="13800138000 / Abc@123456" />
+          <DetectedEntry index={1} title="Taobao" subtitle="13800138000 / Abc@123456" badge={t("category.website")} />
           <DetectedEntry index={2} title="Bilibili" subtitle="user@example.com / Xy#9kL2m" selected />
         </Card>
 
         <View style={styles.actions}>
-          <Button variant="secondary" style={styles.actionButton}>Re-recognize</Button>
-          <Button style={styles.actionButton}>Confirm and Save</Button>
+          <Button variant="secondary" style={styles.actionButton}>{t("quickEntry.rerecognize")}</Button>
+          <Button style={styles.actionButton}>{t("quickEntry.confirmSave")}</Button>
         </View>
 
-        <Text style={styles.detailLabel}>Confirm detail view</Text>
+        <Text style={styles.detailLabel}>{t("quickEntry.confirmDetailView")}</Text>
         <Card style={styles.detailPanel}>
           <View style={styles.handle} />
           <View style={styles.panelHeader}>
             <Text style={styles.panelTitle}>Bilibili</Text>
-            <Badge color={colors.warning} soft={colors.warningSoft}>Auto-filled</Badge>
+            <Badge color={colors.warning} soft={colors.warningSoft}>{t("quickEntry.autoFilled")}</Badge>
           </View>
-          <Text style={styles.fieldLabel}>Username</Text>
+          <Text style={styles.fieldLabel}>{t("common.username")}</Text>
           <View style={styles.detectedField}>
             <Text style={styles.detectedText}>user@example.com</Text>
           </View>
@@ -84,13 +87,13 @@ export default function QuickEntryScreen() {
             <View style={styles.swapIcon}>
               <ArrowsLeftRight size={18} color={colors.primary} weight="regular" />
             </View>
-            <Text style={styles.swapText}>Swap fields</Text>
+            <Text style={styles.swapText}>{t("quickEntry.swapFields")}</Text>
           </View>
-          <Text style={styles.fieldLabel}>Password</Text>
+          <Text style={styles.fieldLabel}>{t("common.password")}</Text>
           <View style={styles.detectedField}>
             <Text style={[styles.detectedText, styles.mono]}>Xy#9kL2m</Text>
           </View>
-          <Text style={styles.fieldLabel}>Website (detected)</Text>
+          <Text style={styles.fieldLabel}>{t("quickEntry.detectedWebsite")}</Text>
           <Text style={styles.url}>https://bilibili.com</Text>
         </Card>
       </ScrollView>
@@ -134,7 +137,9 @@ function EntryCard({
   );
 }
 
-function DetectedEntry({ index, title, subtitle, selected = false }: { index: number; title: string; subtitle: string; selected?: boolean }) {
+function DetectedEntry({ index, title, subtitle, selected = false, badge }: { index: number; title: string; subtitle: string; selected?: boolean; badge?: string }) {
+  const { t } = useLanguage();
+
   return (
     <View style={[styles.detected, selected && styles.detectedSelected]}>
       <View style={[styles.detectedIndex, selected && { backgroundColor: colors.primary }]}>
@@ -143,7 +148,7 @@ function DetectedEntry({ index, title, subtitle, selected = false }: { index: nu
       <View style={{ flex: 1 }}>
         <View style={styles.detectedTitleRow}>
           <Text style={styles.detectedTitle}>{title}</Text>
-          <Badge>Website</Badge>
+          <Badge>{badge ?? t("category.website")}</Badge>
         </View>
         <Text style={styles.detectedSub}>{subtitle}</Text>
       </View>
