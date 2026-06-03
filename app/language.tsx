@@ -33,6 +33,7 @@ const options: Array<{
   },
 ];
 
+// 语言选择页：直接写入 LanguageProvider，切换后所有 t() 文案即时刷新。
 export default function LanguageScreen() {
   const { colors } = useTheme();
   const { languagePreference, setLanguagePreference, t } = useLanguage();
@@ -80,6 +81,7 @@ export default function LanguageScreen() {
 }
 
 function OptionIcon({ type, active }: { type: "system" | "zh" | "en"; active: boolean }) {
+  // 语言选项图标独立出来，保持 options 数据只描述业务，不直接携带组件。
   const { colors } = useTheme();
 
   if (type === "system") {

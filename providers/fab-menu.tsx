@@ -5,8 +5,14 @@ type FabMenuContextValue = {
   setFabOpen: (open: boolean) => void;
 };
 
-const FabMenuContext = createContext<FabMenuContextValue | null>(null);
+const defaultFabMenuContext: FabMenuContextValue = {
+  fabOpen: false,
+  setFabOpen: () => {},
+};
 
+const FabMenuContext = createContext<FabMenuContextValue>(defaultFabMenuContext);
+
+// FAB 菜单状态跨首页和浮层共享，后续如果多个页面需要快捷入口可继续复用。
 export function FabMenuProvider({ children }: { children: ReactNode }) {
   const [fabOpen, setFabOpen] = useState(false);
 
@@ -22,11 +28,5 @@ export function FabMenuProvider({ children }: { children: ReactNode }) {
 }
 
 export function useFabMenu() {
-  const context = useContext(FabMenuContext);
-
-  if (!context) {
-    throw new Error("useFabMenu must be used within FabMenuProvider");
-  }
-
-  return context;
+  return useContext(FabMenuContext);
 }

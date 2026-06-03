@@ -1,19 +1,20 @@
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { Eye, Fingerprint, ShieldChevron } from "phosphor-react-native";
+import { Fingerprint, ShieldChevron } from "phosphor-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, Field } from "@/components/ui";
+import { Button, PasswordField } from "@/components/ui";
 import { useLanguage } from "@/providers/language";
+import { useSecurity } from "@/providers/security";
 import { useTheme } from "@/providers/theme";
-import { verifyMasterPassword } from "@/services/security";
 import { spacing } from "@/theme/tokens";
 
 export default function LockScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { t } = useLanguage();
+  const { authenticateWithBiometrics, biometricAvailable, settings, verifyPassword } = useSecurity();
   const { colors } = useTheme();
 
   const runImpactHaptic = async () => {
@@ -27,7 +28,7 @@ export default function LockScreen() {
   };
 
   const unlock = async () => {
-    const ok = await verifyMasterPassword(password || "demo");
+    const ok = await verifyPassword(password);
     if (ok) {
       await runImpactHaptic();
       router.replace("/(tabs)");
@@ -36,6 +37,20 @@ export default function LockScreen() {
     setError(t("lock.wrongMasterPassword"));
     await runErrorHaptic();
   };
+
+  const unlockWithBiometrics = async () => {
+    const ok = await authenticateWithBiometrics();
+    if (ok) {
+      await runImpactHaptic();
+      router.replace("/(tabs)");
+      return;
+    }
+
+    setError(t("lock.biometricUnavailable"));
+    await runErrorHaptic();
+  };
+
+  const biometricEnabled = settings.biometricUnlock && biometricAvailable;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
@@ -47,9 +62,9 @@ export default function LockScreen() {
           <Text style={[styles.brand, { color: colors.textMuted }]}>SecureVault</Text>
         </View>
 
-        <Pressable style={styles.fingerprint} onPress={unlock}>
+        <Pressable style={[styles.fingerprint, !biometricEnabled && styles.disabled]} onPress={unlockWithBiometrics} disabled={!biometricEnabled}>
           <View style={[styles.fingerprintIcon, { backgroundColor: colors.primarySoft }]}>
-            <Fingerprint size={46} color={colors.primary} weight="regular" />
+            <Fingerprint size={46} color={biometricEnabled ? colors.primary : colors.textSubtle} weight="regular" />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>{t("lock.touchToUnlock")}</Text>
           <Text style={[styles.subtitle, { color: colors.textSubtle }]}>{t("lock.useFingerprint")}</Text>
@@ -61,16 +76,13 @@ export default function LockScreen() {
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
         </View>
 
-        <View style={styles.inputWrap}>
-          <Field
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            placeholder={t("lock.masterPasswordPlaceholder")}
-            onSubmitEditing={unlock}
-          />
-          <Eye size={20} color={colors.textSubtle} weight="regular" style={styles.eye} />
-        </View>
+        <PasswordField
+          containerStyle={styles.inputWrap}
+          value={password}
+          onChangeText={setPassword}
+          placeholder={t("lock.masterPasswordPlaceholder")}
+          onSubmitEditing={unlock}
+        />
         {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
         <Button onPress={unlock}>{t("lock.unlock")}</Button>
         <Button variant="ghost">{t("lock.forgotPassword")}</Button>
@@ -101,6 +113,9 @@ const styles = StyleSheet.create({
   },
   fingerprint: {
     alignItems: "center",
+  },
+  disabled: {
+    opacity: 0.48,
   },
   fingerprintIcon: {
     alignItems: "center",
@@ -133,11 +148,6 @@ const styles = StyleSheet.create({
   },
   inputWrap: {
     marginBottom: spacing.md,
-  },
-  eye: {
-    position: "absolute",
-    right: 16,
-    top: 14,
   },
   error: {
     fontSize: 12,

@@ -1,6 +1,6 @@
 import { colors } from "@/theme/tokens";
 
-export type VaultCategory = "website" | "app" | "wifi" | "note";
+export type VaultCategory = "website" | "app" | "wifi";
 
 export type VaultItem = {
   id: string;
@@ -9,9 +9,12 @@ export type VaultItem = {
   username?: string;
   password?: string;
   url?: string;
-  note?: string;
   favorite?: boolean;
-  status?: string;
+  passwordHistory?: Array<{
+    label: "current" | "previous" | "older";
+    date: string;
+  }>;
+  deletedAt?: string;
   updatedAt: string;
 };
 
@@ -19,9 +22,9 @@ export const categoryMeta: Record<VaultCategory, { label: string; color: string;
   website: { label: "Website", color: colors.primary, soft: colors.primarySoft },
   app: { label: "App", color: colors.purple, soft: colors.purpleSoft },
   wifi: { label: "WiFi", color: colors.green, soft: colors.greenSoft },
-  note: { label: "Note", color: colors.warning, soft: colors.warningSoft },
 };
 
+// 演示用密码数据，当前保存在内存中；刷新应用会恢复到这里的初始列表。
 export const vaultItems: VaultItem[] = [
   {
     id: "taobao",
@@ -31,6 +34,11 @@ export const vaultItems: VaultItem[] = [
     password: "xK#9mP$2wLq&4Rn",
     url: "https://taobao.com",
     favorite: true,
+    passwordHistory: [
+      { label: "current", date: "Today" },
+      { label: "previous", date: "Apr 10" },
+      { label: "older", date: "Mar 2" },
+    ],
     updatedAt: "Today",
   },
   {
@@ -40,6 +48,10 @@ export const vaultItems: VaultItem[] = [
     username: "zhangsan",
     password: "Mima#2026!",
     favorite: true,
+    passwordHistory: [
+      { label: "current", date: "Yesterday" },
+      { label: "previous", date: "Apr 10" },
+    ],
     updatedAt: "Yesterday",
   },
   {
@@ -67,7 +79,6 @@ export const vaultItems: VaultItem[] = [
     category: "wifi",
     username: "WPA2",
     password: "Home-5G-2026",
-    status: "Active",
     updatedAt: "Apr 12",
   },
   {
@@ -78,18 +89,38 @@ export const vaultItems: VaultItem[] = [
     password: "Dc@Vault2026",
     updatedAt: "Mar 28",
   },
-  {
-    id: "office-note",
-    title: "Office Safe Code",
-    category: "note",
-    note: "Security note",
-    password: "42-17-09",
-    updatedAt: "Mar 12",
-  },
 ];
 
+export const addVaultItem = (item: VaultItem) => {
+  // 新增项插到顶部，让刚保存的记录能立即在首页列表和详情页看到。
+  vaultItems.unshift(item);
+  return item;
+};
+
+export const getVisibleVaultItems = () => vaultItems.filter((item) => !item.deletedAt);
+
+export const findVaultItem = (id?: string) => getVisibleVaultItems().find((item) => item.id === id);
+
+export const toggleVaultFavorite = (id: string) => {
+  const item = vaultItems.find((entry) => entry.id === id && !entry.deletedAt);
+  if (!item) return null;
+
+  item.favorite = !item.favorite;
+  return item;
+};
+
+export const moveVaultItemToRecycleBin = (id: string) => {
+  const item = vaultItems.find((entry) => entry.id === id && !entry.deletedAt);
+  if (!item) return null;
+
+  item.deletedAt = "Today";
+  item.favorite = false;
+  return item;
+};
+
 export const maskAccount = (value?: string) => {
-  if (!value) return "Secure note";
+  // 首页置顶卡片只展示脱敏账号，邮箱和手机号/普通账号使用不同规则。
+  if (!value) return "Secure item";
   if (value.includes("@")) return value.replace(/^(.{2}).*(@.*)$/, "$1***$2");
   if (value.length <= 6) return value;
   return `${value.slice(0, 3)}****${value.slice(-4)}`;

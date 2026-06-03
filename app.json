@@ -21,6 +21,10 @@
     },
     "android": {
       "allowBackup": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#315FDB"
+      },
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [],
       "package": "com.anonymous.securevault"
@@ -30,7 +34,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

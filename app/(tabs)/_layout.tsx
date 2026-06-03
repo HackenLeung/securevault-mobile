@@ -1,9 +1,7 @@
 import { Tabs } from "expo-router";
-import { useTheme } from "@/providers/theme";
 
+// 这里保留 Tabs 路由能力，但视觉上的底部栏由首页 FAB/页面跳转承担，所以隐藏原生 tabBar。
 export default function TabsLayout() {
-  const { colors } = useTheme();
-
   return (
     <Tabs
       screenOptions={{

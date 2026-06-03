@@ -1,5 +1,6 @@
 export type ThemeMode = "light" | "dark";
 
+// 全局设计 token：页面和组件优先从这里取颜色，避免硬编码散落各处。
 export type ThemeColors = {
   primary: string;
   primarySoft: string;
@@ -68,6 +69,7 @@ export const darkColors: ThemeColors = {
 
 export const colors = lightColors;
 
+// spacing/radii/shadow 是基础视觉节奏，新增样式尽量复用这些 token。
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -92,4 +94,3 @@ export const shadow = {
   shadowRadius: 18,
   elevation: 3,
 };
-

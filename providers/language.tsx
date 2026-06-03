@@ -3,10 +3,12 @@ import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 export type SupportedLanguage = "zh" | "en";
 export type LanguagePreference = "system" | SupportedLanguage;
 
+// 翻译 key 用联合类型收紧，新增文案时 TypeScript 会提醒中英文是否都补齐。
 type TranslationKey =
   | "tabs.home"
   | "tabs.settings"
   | "common.save"
+  | "common.cancel"
   | "common.or"
   | "common.website"
   | "common.username"
@@ -14,6 +16,7 @@ type TranslationKey =
   | "common.delete"
   | "common.favorite"
   | "common.today"
+  | "common.copied"
   | "settings.title"
   | "settings.group.appearance"
   | "settings.group.security"
@@ -26,8 +29,27 @@ type TranslationKey =
   | "settings.security.changeMasterPassword"
   | "settings.security.biometricUnlock"
   | "settings.security.autoLock"
+  | "settings.security.autoLock.1"
+  | "settings.security.autoLock.5"
+  | "settings.security.autoLock.15"
+  | "settings.security.autoLock.30"
+  | "settings.security.autoLock.never"
   | "settings.security.screenshotProtection"
+  | "settings.security.currentPassword"
+  | "settings.security.newPassword"
+  | "settings.security.confirmPassword"
+  | "settings.security.passwordTooShort"
+  | "settings.security.passwordMismatch"
+  | "settings.security.currentPasswordWrong"
+  | "settings.security.passwordChanged"
+  | "settings.security.saving"
+  | "settings.security.biometricUnavailable"
+  | "settings.security.screenshotProtectionUnavailable"
   | "settings.password.generatorDefaults"
+  | "generatorDefaults.description"
+  | "generatorDefaults.preview"
+  | "generatorDefaults.strength"
+  | "generatorDefaults.save"
   | "settings.data.export"
   | "settings.data.import"
   | "settings.data.recycleBin"
@@ -40,6 +62,7 @@ type TranslationKey =
   | "lock.unlock"
   | "lock.forgotPassword"
   | "lock.wrongMasterPassword"
+  | "lock.biometricUnavailable"
   | "home.passwordsStored"
   | "home.searchPlaceholder"
   | "home.pinned"
@@ -48,7 +71,6 @@ type TranslationKey =
   | "home.quickEntry"
   | "home.addPassword"
   | "common.copy"
-  | "common.note"
   | "quickEntry.title"
   | "quickEntry.pasteText"
   | "quickEntry.pasteDescription"
@@ -69,6 +91,9 @@ type TranslationKey =
   | "quickEntry.confirmDetailView"
   | "quickEntry.swapFields"
   | "quickEntry.detectedWebsite"
+  | "quickEntry.recognizing"
+  | "quickEntry.emptyClipboard"
+  | "quickEntry.missingField"
   | "addPassword.title"
   | "addPassword.category"
   | "addPassword.field.ssid"
@@ -76,7 +101,6 @@ type TranslationKey =
   | "addPassword.field.websiteUrl"
   | "addPassword.field.security"
   | "addPassword.field.usernameEmail"
-  | "addPassword.field.secret"
   | "addPassword.field.password"
   | "addPassword.generatePassword"
   | "addPassword.generator.length"
@@ -87,12 +111,8 @@ type TranslationKey =
   | "addPassword.generator.symbols"
   | "addPassword.generator.usePassword"
   | "addPassword.advanced"
-  | "addPassword.expiryTitle"
-  | "addPassword.expirySubtitle"
   | "addPassword.favoriteTitle"
   | "addPassword.favoriteSubtitle"
-  | "addPassword.notesOptional"
-  | "addPassword.notesPlaceholder"
   | "addPassword.savePassword"
   | "addPassword.passwordStrong"
   | "addPassword.passwordCharacters"
@@ -100,12 +120,16 @@ type TranslationKey =
   | "detail.copyUser"
   | "detail.passwordHealth"
   | "detail.strongPassword"
+  | "detail.mediumPassword"
+  | "detail.weakPassword"
   | "detail.healthSub"
   | "detail.passwordHistory"
   | "detail.currentPassword"
   | "detail.previousPassword"
   | "detail.olderPassword"
   | "detail.moveToRecycleBin"
+  | "detail.recycleConfirmTitle"
+  | "detail.recycleConfirmMessage"
   | "detail.security"
   | "detail.updatedApr10"
   | "detail.updatedMar2"
@@ -133,18 +157,16 @@ type TranslationKey =
   | "category.website"
   | "category.app"
   | "category.wifi"
-  | "category.note"
   | "category.website.plural"
   | "category.app.plural"
-  | "category.wifi.plural"
-  | "category.note.plural"
-  | "status.active";
+  | "category.wifi.plural";
 
 const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = {
   zh: {
     "tabs.home": "首页",
     "tabs.settings": "设置",
     "common.save": "保存",
+    "common.cancel": "取消",
     "common.or": "或",
     "common.website": "网站",
     "common.username": "用户名",
@@ -152,6 +174,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "common.delete": "删除",
     "common.favorite": "收藏",
     "common.today": "今天",
+    "common.copied": "已复制",
     "settings.title": "设置",
     "settings.group.appearance": "外观",
     "settings.group.security": "安全",
@@ -164,8 +187,27 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.security.changeMasterPassword": "修改主密码",
     "settings.security.biometricUnlock": "生物识别解锁",
     "settings.security.autoLock": "自动锁定",
+    "settings.security.autoLock.1": "1 分钟",
+    "settings.security.autoLock.5": "5 分钟",
+    "settings.security.autoLock.15": "15 分钟",
+    "settings.security.autoLock.30": "30 分钟",
+    "settings.security.autoLock.never": "永不",
     "settings.security.screenshotProtection": "截屏保护",
+    "settings.security.currentPassword": "当前主密码",
+    "settings.security.newPassword": "新主密码",
+    "settings.security.confirmPassword": "确认新主密码",
+    "settings.security.passwordTooShort": "新主密码至少需要 4 位",
+    "settings.security.passwordMismatch": "两次输入的新主密码不一致",
+    "settings.security.currentPasswordWrong": "当前主密码错误",
+    "settings.security.passwordChanged": "主密码已修改",
+    "settings.security.saving": "保存中",
+    "settings.security.biometricUnavailable": "当前设备未启用可用的生物识别",
+    "settings.security.screenshotProtectionUnavailable": "当前平台暂不支持截屏保护",
     "settings.password.generatorDefaults": "密码生成器默认设置",
+    "generatorDefaults.description": "新密码将默认使用此配置",
+    "generatorDefaults.preview": "实时预览",
+    "generatorDefaults.strength": "强度",
+    "generatorDefaults.save": "保存默认设置",
     "settings.data.export": "导出数据",
     "settings.data.import": "导入数据",
     "settings.data.recycleBin": "回收站",
@@ -178,6 +220,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "lock.unlock": "解锁",
     "lock.forgotPassword": "忘记密码？",
     "lock.wrongMasterPassword": "主密码错误",
+    "lock.biometricUnavailable": "生物识别不可用，请使用主密码",
     "home.passwordsStored": "条密码已保存",
     "home.searchPlaceholder": "搜索密码...",
     "home.pinned": "收藏置顶",
@@ -186,7 +229,6 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "home.quickEntry": "快速录入",
     "home.addPassword": "新增密码",
     "common.copy": "复制",
-    "common.note": "笔记",
     "quickEntry.title": "快速录入",
     "quickEntry.pasteText": "粘贴文本",
     "quickEntry.pasteDescription": "粘贴账号信息，自动提取",
@@ -207,6 +249,9 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.confirmDetailView": "确认详情视图",
     "quickEntry.swapFields": "交换字段",
     "quickEntry.detectedWebsite": "网站（识别）",
+    "quickEntry.recognizing": "识别中...",
+    "quickEntry.emptyClipboard": "剪贴板为空，已使用示例文本演示识别流程",
+    "quickEntry.missingField": "未识别",
     "addPassword.title": "新增密码",
     "addPassword.category": "分类",
     "addPassword.field.ssid": "SSID",
@@ -214,7 +259,6 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "addPassword.field.websiteUrl": "网站地址",
     "addPassword.field.security": "安全类型",
     "addPassword.field.usernameEmail": "用户名 / 邮箱",
-    "addPassword.field.secret": "私密内容",
     "addPassword.field.password": "密码",
     "addPassword.generatePassword": "生成新密码",
     "addPassword.generator.length": "长度",
@@ -225,12 +269,8 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "addPassword.generator.symbols": "!@#$ 符号",
     "addPassword.generator.usePassword": "使用此密码",
     "addPassword.advanced": "高级选项",
-    "addPassword.expiryTitle": "密码过期提醒",
-    "addPassword.expirySubtitle": "密码需要更换时提醒我",
     "addPassword.favoriteTitle": "加入收藏",
     "addPassword.favoriteSubtitle": "置顶显示，便于快速访问",
-    "addPassword.notesOptional": "备注（可选）",
-    "addPassword.notesPlaceholder": "补充其他说明信息...",
     "addPassword.savePassword": "保存密码",
     "addPassword.passwordStrong": "强",
     "addPassword.passwordCharacters": "个字符",
@@ -238,12 +278,16 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "detail.copyUser": "复制账号",
     "detail.passwordHealth": "密码健康度",
     "detail.strongPassword": "强密码",
+    "detail.mediumPassword": "中等密码",
+    "detail.weakPassword": "弱密码",
     "detail.healthSub": "更新于 {date}。未开启过期提醒。",
     "detail.passwordHistory": "密码历史",
     "detail.currentPassword": "当前密码",
     "detail.previousPassword": "上一个密码",
     "detail.olderPassword": "更早密码",
     "detail.moveToRecycleBin": "移入回收站",
+    "detail.recycleConfirmTitle": "移入回收站",
+    "detail.recycleConfirmMessage": "该条目会从首页列表隐藏。",
     "detail.security": "安全类型",
     "detail.updatedApr10": "4月10日",
     "detail.updatedMar2": "3月2日",
@@ -271,17 +315,15 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "category.website": "网站",
     "category.app": "应用",
     "category.wifi": "WiFi",
-    "category.note": "笔记",
     "category.website.plural": "网站",
     "category.app.plural": "应用",
     "category.wifi.plural": "WiFi",
-    "category.note.plural": "笔记",
-    "status.active": "使用中",
   },
   en: {
     "tabs.home": "Home",
     "tabs.settings": "Settings",
     "common.save": "Save",
+    "common.cancel": "Cancel",
     "common.or": "or",
     "common.website": "Website",
     "common.username": "Username",
@@ -289,6 +331,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "common.delete": "Delete",
     "common.favorite": "Favorite",
     "common.today": "Today",
+    "common.copied": "Copied",
     "settings.title": "Settings",
     "settings.group.appearance": "Appearance",
     "settings.group.security": "Security",
@@ -301,8 +344,27 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.security.changeMasterPassword": "Change Master Password",
     "settings.security.biometricUnlock": "Biometric Unlock",
     "settings.security.autoLock": "Auto-Lock",
+    "settings.security.autoLock.1": "1 minute",
+    "settings.security.autoLock.5": "5 minutes",
+    "settings.security.autoLock.15": "15 minutes",
+    "settings.security.autoLock.30": "30 minutes",
+    "settings.security.autoLock.never": "Never",
     "settings.security.screenshotProtection": "Screenshot Protection",
+    "settings.security.currentPassword": "Current master password",
+    "settings.security.newPassword": "New master password",
+    "settings.security.confirmPassword": "Confirm new master password",
+    "settings.security.passwordTooShort": "New master password must be at least 4 characters",
+    "settings.security.passwordMismatch": "The new passwords do not match",
+    "settings.security.currentPasswordWrong": "Current master password is wrong",
+    "settings.security.passwordChanged": "Master password changed",
+    "settings.security.saving": "Saving",
+    "settings.security.biometricUnavailable": "Biometric unlock is not available on this device",
+    "settings.security.screenshotProtectionUnavailable": "Screenshot protection is not supported on this platform",
     "settings.password.generatorDefaults": "Password Generator Defaults",
+    "generatorDefaults.description": "New passwords will use this configuration by default",
+    "generatorDefaults.preview": "Live Preview",
+    "generatorDefaults.strength": "Strength",
+    "generatorDefaults.save": "Save Defaults",
     "settings.data.export": "Export Data",
     "settings.data.import": "Import Data",
     "settings.data.recycleBin": "Recycle Bin",
@@ -315,6 +377,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "lock.unlock": "Unlock",
     "lock.forgotPassword": "Forgot password?",
     "lock.wrongMasterPassword": "Wrong master password",
+    "lock.biometricUnavailable": "Biometric unlock is unavailable. Use your master password.",
     "home.passwordsStored": "passwords stored",
     "home.searchPlaceholder": "Search passwords...",
     "home.pinned": "Pinned",
@@ -323,7 +386,6 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "home.quickEntry": "Quick Entry",
     "home.addPassword": "Add Password",
     "common.copy": "Copy",
-    "common.note": "Note",
     "quickEntry.title": "Quick Entry",
     "quickEntry.pasteText": "Paste text",
     "quickEntry.pasteDescription": "Paste account info, auto extract",
@@ -344,6 +406,9 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.confirmDetailView": "Confirm detail view",
     "quickEntry.swapFields": "Swap fields",
     "quickEntry.detectedWebsite": "Website (detected)",
+    "quickEntry.recognizing": "Recognizing...",
+    "quickEntry.emptyClipboard": "Clipboard is empty. Example text was used to preview the flow.",
+    "quickEntry.missingField": "Not detected",
     "addPassword.title": "Add Password",
     "addPassword.category": "Category",
     "addPassword.field.ssid": "SSID",
@@ -351,7 +416,6 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "addPassword.field.websiteUrl": "Website URL",
     "addPassword.field.security": "Security",
     "addPassword.field.usernameEmail": "Username / Email",
-    "addPassword.field.secret": "Secret",
     "addPassword.field.password": "Password",
     "addPassword.generatePassword": "Generate new password",
     "addPassword.generator.length": "Length",
@@ -362,12 +426,8 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "addPassword.generator.symbols": "!@#$ Symbols",
     "addPassword.generator.usePassword": "Use this password",
     "addPassword.advanced": "Advanced",
-    "addPassword.expiryTitle": "Password expiry reminder",
-    "addPassword.expirySubtitle": "Get notified when password needs changing",
     "addPassword.favoriteTitle": "Add to favorites",
     "addPassword.favoriteSubtitle": "Pin to top for quick access",
-    "addPassword.notesOptional": "Notes (optional)",
-    "addPassword.notesPlaceholder": "Add any extra information here...",
     "addPassword.savePassword": "Save Password",
     "addPassword.passwordStrong": "Strong",
     "addPassword.passwordCharacters": "characters",
@@ -375,12 +435,16 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "detail.copyUser": "Copy user",
     "detail.passwordHealth": "Password Health",
     "detail.strongPassword": "Strong password",
+    "detail.mediumPassword": "Medium password",
+    "detail.weakPassword": "Weak password",
     "detail.healthSub": "Updated {date}. No expiry reminder enabled.",
     "detail.passwordHistory": "Password History",
     "detail.currentPassword": "Current password",
     "detail.previousPassword": "Previous password",
     "detail.olderPassword": "Older password",
     "detail.moveToRecycleBin": "Move to Recycle Bin",
+    "detail.recycleConfirmTitle": "Move to Recycle Bin",
+    "detail.recycleConfirmMessage": "This item will be hidden from the home list.",
     "detail.security": "Security",
     "detail.updatedApr10": "Apr 10",
     "detail.updatedMar2": "Mar 2",
@@ -408,12 +472,9 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "category.website": "Website",
     "category.app": "App",
     "category.wifi": "WiFi",
-    "category.note": "Note",
     "category.website.plural": "Websites",
     "category.app.plural": "Apps",
     "category.wifi.plural": "WiFi",
-    "category.note.plural": "Notes",
-    "status.active": "Active",
   },
 };
 
@@ -424,17 +485,27 @@ type LanguageContextValue = {
   t: (key: TranslationKey) => string;
 };
 
-const LanguageContext = createContext<LanguageContextValue | null>(null);
+const defaultLanguageContext: LanguageContextValue = {
+  languagePreference: "zh",
+  language: "zh",
+  setLanguagePreference: () => {},
+  t: (key) => translations.zh[key],
+};
+
+const LanguageContext = createContext<LanguageContextValue>(defaultLanguageContext);
 
 const resolveSystemLanguage = (): SupportedLanguage => {
+  // 当前只区分中文和英文，非中文系统统一回退到英文。
   const locale = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase();
   return locale.startsWith("zh") ? "zh" : "en";
 };
 
+// 语言 Provider：保存语言偏好，并提供类型安全的 t(key) 翻译函数。
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [languagePreference, setLanguagePreference] = useState<LanguagePreference>("zh");
 
   const value = useMemo<LanguageContextValue>(() => {
+    // preference 是用户选择，language 是最终生效语言，system 会在这里解析。
     const language = languagePreference === "system" ? resolveSystemLanguage() : languagePreference;
 
     return {
@@ -449,11 +520,5 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 }
 
 export function useLanguage() {
-  const context = useContext(LanguageContext);
-
-  if (!context) {
-    throw new Error("useLanguage must be used within LanguageProvider");
-  }
-
-  return context;
+  return useContext(LanguageContext);
 }

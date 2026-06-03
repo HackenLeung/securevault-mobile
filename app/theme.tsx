@@ -33,6 +33,7 @@ const options: Array<{
   },
 ];
 
+// 主题选择页：保存用户偏好，实际浅/深色解析由 ThemeProvider 负责。
 export default function ThemeScreen() {
   const { t } = useLanguage();
   const { colors, theme, themePreference, setThemePreference } = useTheme();
@@ -59,10 +60,7 @@ export default function ThemeScreen() {
                 onPress={() => setThemePreference(option.key)}
                 style={[
                   styles.option,
-                  { backgroundColor: colors.surface },
-                  active && { borderColor: colors.primary, borderWidth: 2 },
-                  !active && { borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
-                  index < options.length - 1 && styles.optionSpacing,
+                  index < options.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth },
                 ]}
               >
                 <View style={[styles.iconWrap, { backgroundColor: active ? colors.primarySoft : colors.surfaceMuted }]}>
@@ -87,6 +85,7 @@ export default function ThemeScreen() {
 }
 
 function OptionIcon({ type, active, isDark }: { type: "light" | "dark" | "system"; active: boolean; isDark: boolean }) {
+  // 激活态使用品牌色，未激活态根据当前主题调整可读性。
   const baseColor = active ? "#FFFFFF" : isDark ? "#A9B5CB" : "#64748B";
 
   if (type === "light") {
@@ -111,10 +110,8 @@ const styles = StyleSheet.create({
   },
   nav: {
     alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
-    marginBottom: spacing.xl,
-    paddingBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   backButton: {
     alignItems: "center",
@@ -128,34 +125,29 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800",
     marginLeft: spacing.md,
-    textAlign: "center",
   },
   navSpacer: {
     width: 36,
   },
   panel: {
     borderRadius: radii.lg,
-    gap: spacing.md,
+    overflow: "hidden",
     padding: 0,
     shadowOpacity: 0,
   },
   option: {
     alignItems: "center",
-    borderRadius: radii.lg,
     flexDirection: "row",
-    minHeight: 96,
+    minHeight: 84,
     paddingHorizontal: spacing.lg,
-  },
-  optionSpacing: {
-    marginBottom: spacing.md,
   },
   iconWrap: {
     alignItems: "center",
-    borderRadius: 16,
-    height: 44,
+    borderRadius: 12,
+    height: 40,
     justifyContent: "center",
     marginRight: spacing.md,
-    width: 44,
+    width: 40,
   },
   optionText: {
     flex: 1,

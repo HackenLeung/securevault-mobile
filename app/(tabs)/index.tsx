@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
-import { router } from "expo-router";
-import { MagnifyingGlass, Lightning, Plus, Star, Gear } from "phosphor-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { Check, Copy, MagnifyingGlass, Lightning, Plus, Star, Gear } from "phosphor-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -17,14 +17,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { Badge, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { useFabMenu } from "@/providers/fab-menu";
 import { useLanguage } from "@/providers/language";
-import { categoryMeta, maskAccount, VaultCategory, vaultItems } from "@/data/vault";
+import { categoryMeta, getVisibleVaultItems, maskAccount, VaultCategory } from "@/data/vault";
 import { colors, radii, shadow, spacing } from "@/theme/tokens";
 
-const tabs: Array<"all" | VaultCategory> = ["all", "website", "app", "wifi", "note"];
+const tabs: Array<"all" | VaultCategory> = ["all", "website", "app", "wifi"];
 
+// Android 需要显式打开 LayoutAnimation，置顶区和分类切换才会有平滑过渡。
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -34,25 +35,37 @@ export default function HomeScreen() {
   const [query, setQuery] = useState("");
   const [showPinned, setShowPinned] = useState(true);
   const [tabsWidth, setTabsWidth] = useState(0);
+  const [dataVersion, setDataVersion] = useState(0);
+  const [copiedItemId, setCopiedItemId] = useState<string | null>(null);
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const { fabOpen, setFabOpen } = useFabMenu();
 
   const pinnedAnim = useRef(new Animated.Value(1)).current;
   const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const floatingBottom = Math.max(insets.bottom + 36, 36);
 
   const filtered = useMemo(() => {
-    return vaultItems.filter((item) => {
+    // 搜索范围覆盖标题、账号和 URL；分类筛选与关键词同时满足才展示。
+    return getVisibleVaultItems().filter((item) => {
       const categoryMatch = category === "all" || item.category === category;
       const search = `${item.title} ${item.username ?? ""} ${item.url ?? ""}`.toLowerCase();
       return categoryMatch && search.includes(query.toLowerCase());
     });
-  }, [category, query]);
+  }, [category, dataVersion, query]);
 
-  const pinned = vaultItems.filter((item) => item.favorite);
+  const pinned = getVisibleVaultItems().filter((item) => item.favorite);
+  const hasPinned = pinned.length > 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      setDataVersion((value) => value + 1);
+    }, []),
+  );
 
   useEffect(() => {
+    // 置顶区折叠时同时收起高度、透明度和底部间距，避免列表产生空白跳动。
     Animated.timing(pinnedAnim, {
       toValue: showPinned ? 1 : 0,
       duration: 220,
@@ -64,6 +77,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const tabIndex = tabs.indexOf(category);
 
+    // 指示器根据容器实测宽度移动，适配不同屏幕宽度和字体长度。
     Animated.timing(tabIndicatorAnim, {
       toValue: tabsWidth > 0 ? (tabsWidth / tabs.length) * tabIndex : 0,
       duration: 220,
@@ -72,8 +86,21 @@ export default function HomeScreen() {
     }).start();
   }, [category, tabIndicatorAnim, tabsWidth]);
 
-  const copyPassword = async (password?: string) => {
-    if (password) await Clipboard.setStringAsync(password);
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  const copyPassword = async (id: string, password?: string) => {
+    if (!password) return;
+    await Clipboard.setStringAsync(password);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    setCopiedItemId(id);
+    copiedTimerRef.current = setTimeout(() => {
+      setCopiedItemId(null);
+      copiedTimerRef.current = null;
+    }, 1000);
   };
 
   const togglePinned = () => {
@@ -91,6 +118,7 @@ export default function HomeScreen() {
   };
 
   const navigateFromFab = (path: "/quick-entry" | "/add-password" | "/settings") => {
+    // 先关闭浮层再跳转，避免返回首页时菜单还保持展开状态。
     setFabOpen(false);
     router.push(path);
   };
@@ -110,52 +138,56 @@ export default function HomeScreen() {
             />
           </View>
 
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t("home.pinned")}</Text>
-            <Pressable onPress={togglePinned} hitSlop={8}>
-              <Text style={styles.link}>{showPinned ? t("common.hide") : t("common.show")}</Text>
-            </Pressable>
-          </View>
-
-          <Animated.View
-            style={[
-              styles.pinnedWrap,
-              {
-                height: pinnedAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 80],
-                }),
-                opacity: pinnedAnim,
-                marginBottom: pinnedAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, spacing.lg],
-                }),
-              },
-            ]}
-          >
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pinnedRow}>
-              {pinned.map((item) => (
-                <Pressable key={item.id} onPress={() => router.push(`/password-detail/${item.id}`)}>
-                  <Card style={styles.pinnedCard}>
-                    <View style={[styles.initial, { backgroundColor: categoryMeta[item.category].soft }]}>
-                      <Text style={[styles.initialText, { color: categoryMeta[item.category].color }]}>{item.title[0]}</Text>
-                    </View>
-                    <View style={styles.pinnedText}>
-                      <Text style={styles.itemTitle} numberOfLines={1}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.itemSub} numberOfLines={1}>
-                        {maskAccount(item.username)}
-                      </Text>
-                    </View>
-                    <Star size={18} color={colors.favorite} weight="regular" />
-                  </Card>
+          {hasPinned ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t("home.pinned")}</Text>
+                <Pressable onPress={togglePinned} hitSlop={8}>
+                  <Text style={styles.link}>{showPinned ? t("common.hide") : t("common.show")}</Text>
                 </Pressable>
-              ))}
-            </ScrollView>
-          </Animated.View>
+              </View>
 
-          <View style={styles.tabs} onLayout={(event) => setTabsWidth(event.nativeEvent.layout.width)}>
+              <Animated.View
+                style={[
+                  styles.pinnedWrap,
+                  {
+                    height: pinnedAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 80],
+                    }),
+                    opacity: pinnedAnim,
+                    marginBottom: pinnedAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, spacing.lg],
+                    }),
+                  },
+                ]}
+              >
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pinnedRow}>
+                  {pinned.map((item) => (
+                    <Pressable key={item.id} onPress={() => router.push(`/password-detail/${item.id}`)}>
+                      <Card style={styles.pinnedCard}>
+                        <View style={[styles.initial, { backgroundColor: categoryMeta[item.category].soft }]}>
+                          <Text style={[styles.initialText, { color: categoryMeta[item.category].color }]}>{item.title[0]}</Text>
+                        </View>
+                        <View style={styles.pinnedText}>
+                          <Text style={styles.itemTitle} numberOfLines={1}>
+                            {item.title}
+                          </Text>
+                          <Text style={styles.itemSub} numberOfLines={1}>
+                            {maskAccount(item.username)}
+                          </Text>
+                        </View>
+                        <Star size={18} color={colors.favorite} weight="regular" />
+                      </Card>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </Animated.View>
+            </>
+          ) : null}
+
+          <View style={[styles.tabs, !hasPinned && styles.tabsAfterSearch]} onLayout={(event) => setTabsWidth(event.nativeEvent.layout.width)}>
             {tabsWidth > 0 ? (
               <Animated.View
                 pointerEvents="none"
@@ -180,9 +212,7 @@ export default function HomeScreen() {
                             ? "category.website.plural"
                             : tab === "app"
                               ? "category.app.plural"
-                              : tab === "wifi"
-                                ? "category.wifi.plural"
-                                : "category.note.plural",
+                              : "category.wifi.plural",
                         )}
                   </Text>
                 </Pressable>
@@ -199,6 +229,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.list}
           renderItem={({ item, index }) => {
             const meta = categoryMeta[item.category];
+            const copied = copiedItemId === item.id;
             return (
               <Animated.View
                 style={{
@@ -216,18 +247,17 @@ export default function HomeScreen() {
                         {item.title}
                       </Text>
                       <Text style={styles.itemSub} numberOfLines={1}>
-                        {item.category === "note" ? item.note : item.username}
+                        {item.username}
                       </Text>
                     </View>
-                    {item.status ? (
-                      <Badge color={colors.green} soft={colors.greenSoft}>{t("status.active")}</Badge>
-                    ) : item.category === "note" ? (
-                      <Badge color={colors.warning} soft={colors.warningSoft}>{t("common.note")}</Badge>
-                    ) : (
-                      <Pressable onPress={() => copyPassword(item.password)} style={styles.copyPill}>
-                        <Text style={styles.copyText}>{t("common.copy")}</Text>
-                      </Pressable>
-                    )}
+                    <Pressable onPress={() => copyPassword(item.id, item.password)} style={[styles.copyPill, copied && styles.copyPillDone]}>
+                      {copied ? (
+                        <Check size={12} color={colors.green} weight="bold" />
+                      ) : (
+                        <Copy size={12} color={colors.primary} weight="regular" />
+                      )}
+                      <Text style={[styles.copyText, copied && styles.copyTextDone]}>{copied ? t("common.copied") : t("common.copy")}</Text>
+                    </Pressable>
                   </Card>
                 </Pressable>
               </Animated.View>
@@ -276,7 +306,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { flex: 1, padding: spacing.xl },
+  content: { flex: 1, padding: spacing.xl, paddingTop: spacing.xxl },
   fixedTop: {
     zIndex: 1,
   },
@@ -326,8 +356,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     borderRadius: radii.md,
     flexDirection: "row",
-    position: "relative",
     padding: 2,
+    position: "relative",
+  },
+  tabsAfterSearch: {
+    marginTop: spacing.md,
   },
   tabIndicator: {
     backgroundColor: colors.primary,
@@ -373,12 +406,22 @@ const styles = StyleSheet.create({
   itemTitle: { color: colors.text, fontSize: 15, fontWeight: "700" },
   itemSub: { color: colors.textSubtle, fontSize: 13, marginTop: 4 },
   copyPill: {
-    backgroundColor: colors.surfaceMuted,
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
     borderRadius: radii.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  copyText: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },
+  copyPillDone: {
+    backgroundColor: colors.greenSoft,
+    borderColor: colors.green,
+  },
+  copyText: { color: colors.primary, fontSize: 12, fontWeight: "700" },
+  copyTextDone: { color: colors.green },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(15, 23, 42, 0.14)",
