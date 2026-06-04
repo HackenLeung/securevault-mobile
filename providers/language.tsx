@@ -15,6 +15,7 @@ type TranslationKey =
   | "common.password"
   | "common.delete"
   | "common.favorite"
+  | "common.back"
   | "common.today"
   | "common.copied"
   | "settings.title"
@@ -53,6 +54,15 @@ type TranslationKey =
   | "settings.data.export"
   | "settings.data.import"
   | "settings.data.recycleBin"
+  | "settings.data.exportDone"
+  | "settings.data.importDone"
+  | "settings.data.importEmpty"
+  | "settings.data.importInvalid"
+  | "settings.data.recycleEmpty"
+  | "settings.data.restore"
+  | "settings.data.deleteForever"
+  | "settings.data.deleteForeverTitle"
+  | "settings.data.deleteForeverMessage"
   | "settings.other.checkUpdates"
   | "settings.other.changelog"
   | "lock.touchToUnlock"
@@ -64,6 +74,7 @@ type TranslationKey =
   | "lock.wrongMasterPassword"
   | "lock.biometricUnavailable"
   | "home.passwordsStored"
+  | "home.title"
   | "home.searchPlaceholder"
   | "home.pinned"
   | "common.hide"
@@ -80,6 +91,20 @@ type TranslationKey =
   | "quickEntry.scanDescription"
   | "quickEntry.scanDetail"
   | "quickEntry.scanAction"
+  | "quickEntry.scanUploadDescription"
+  | "quickEntry.scanUploadAction"
+  | "quickEntry.scanUploadHint"
+  | "quickEntry.scanDone"
+  | "quickEntry.scanFailed"
+  | "quickEntry.scanOcrResult"
+  | "quickEntry.scanAutoMatch"
+  | "quickEntry.scanRecognized"
+  | "quickEntry.scanFromScreenshot"
+  | "quickEntry.scanManualNeeded"
+  | "quickEntry.scanInferred"
+  | "quickEntry.scanPermissionDenied"
+  | "quickEntry.scanError"
+  | "quickEntry.scanWebUnsupported"
   | "quickEntry.manualEntry"
   | "quickEntry.manualDescription"
   | "quickEntry.resultTitle"
@@ -95,6 +120,7 @@ type TranslationKey =
   | "quickEntry.emptyClipboard"
   | "quickEntry.missingField"
   | "addPassword.title"
+  | "addPassword.editTitle"
   | "addPassword.category"
   | "addPassword.field.ssid"
   | "addPassword.field.title"
@@ -173,6 +199,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "common.password": "密码",
     "common.delete": "删除",
     "common.favorite": "收藏",
+    "common.back": "返回",
     "common.today": "今天",
     "common.copied": "已复制",
     "settings.title": "设置",
@@ -211,6 +238,15 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.data.export": "导出数据",
     "settings.data.import": "导入数据",
     "settings.data.recycleBin": "回收站",
+    "settings.data.exportDone": "已导出到剪贴板",
+    "settings.data.importDone": "已从剪贴板导入 {count} 条数据",
+    "settings.data.importEmpty": "剪贴板为空",
+    "settings.data.importInvalid": "剪贴板内容不是有效的密码库数据",
+    "settings.data.recycleEmpty": "回收站为空",
+    "settings.data.restore": "恢复",
+    "settings.data.deleteForever": "删除",
+    "settings.data.deleteForeverTitle": "永久删除",
+    "settings.data.deleteForeverMessage": "删除后无法恢复，确定继续吗？",
     "settings.other.checkUpdates": "检查更新",
     "settings.other.changelog": "更新日志",
     "lock.touchToUnlock": "点击解锁",
@@ -222,6 +258,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "lock.wrongMasterPassword": "主密码错误",
     "lock.biometricUnavailable": "生物识别不可用，请使用主密码",
     "home.passwordsStored": "条密码已保存",
+    "home.title": "密码管理器",
     "home.searchPlaceholder": "搜索密码...",
     "home.pinned": "收藏置顶",
     "common.hide": "收起",
@@ -238,6 +275,20 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.scanDescription": "OCR 识别图片中的文字",
     "quickEntry.scanDetail": "自动识别登录表单",
     "quickEntry.scanAction": "扫描  >",
+    "quickEntry.scanUploadDescription": "上传包含登录表单的截图，系统将自动 OCR 识别并提取账号、密码等字段。数据仅在本地处理。",
+    "quickEntry.scanUploadAction": "点击选择截图",
+    "quickEntry.scanUploadHint": "或从相册选取 · PNG / JPG / HEIC",
+    "quickEntry.scanDone": "识别完成",
+    "quickEntry.scanFailed": "识别失败",
+    "quickEntry.scanOcrResult": "OCR 识别结果",
+    "quickEntry.scanAutoMatch": "自动匹配字段",
+    "quickEntry.scanRecognized": "{count}/4 已识别",
+    "quickEntry.scanFromScreenshot": "来自截图",
+    "quickEntry.scanManualNeeded": "需手动填写",
+    "quickEntry.scanInferred": "推断",
+    "quickEntry.scanPermissionDenied": "需要相册权限才能选择截图。",
+    "quickEntry.scanError": "本地 OCR 识别失败。请确认已重新构建 Android/iOS App，并选择清晰截图。",
+    "quickEntry.scanWebUnsupported": "Web 预览暂不支持本地 OCR，请在 Android/iOS App 中选择截图识别。",
     "quickEntry.manualEntry": "手动录入",
     "quickEntry.manualDescription": "按步骤填写表单",
     "quickEntry.resultTitle": "识别结果",
@@ -250,9 +301,10 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.swapFields": "交换字段",
     "quickEntry.detectedWebsite": "网站（识别）",
     "quickEntry.recognizing": "识别中...",
-    "quickEntry.emptyClipboard": "剪贴板为空，已使用示例文本演示识别流程",
+    "quickEntry.emptyClipboard": "暂无可识别文本",
     "quickEntry.missingField": "未识别",
     "addPassword.title": "新增密码",
+    "addPassword.editTitle": "编辑密码",
     "addPassword.category": "分类",
     "addPassword.field.ssid": "SSID",
     "addPassword.field.title": "标题",
@@ -275,7 +327,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "addPassword.passwordStrong": "强",
     "addPassword.passwordCharacters": "个字符",
     "detail.title": "密码详情",
-    "detail.copyUser": "复制账号",
+    "detail.copyUser": "复制全部",
     "detail.passwordHealth": "密码健康度",
     "detail.strongPassword": "强密码",
     "detail.mediumPassword": "中等密码",
@@ -330,6 +382,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "common.password": "Password",
     "common.delete": "Delete",
     "common.favorite": "Favorite",
+    "common.back": "Back",
     "common.today": "Today",
     "common.copied": "Copied",
     "settings.title": "Settings",
@@ -368,6 +421,15 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.data.export": "Export Data",
     "settings.data.import": "Import Data",
     "settings.data.recycleBin": "Recycle Bin",
+    "settings.data.exportDone": "Exported to clipboard",
+    "settings.data.importDone": "{count} items imported from clipboard",
+    "settings.data.importEmpty": "Clipboard is empty",
+    "settings.data.importInvalid": "Clipboard content is not valid vault data",
+    "settings.data.recycleEmpty": "Recycle bin is empty",
+    "settings.data.restore": "Restore",
+    "settings.data.deleteForever": "Delete",
+    "settings.data.deleteForeverTitle": "Delete permanently",
+    "settings.data.deleteForeverMessage": "This cannot be undone. Continue?",
     "settings.other.checkUpdates": "Check for Updates",
     "settings.other.changelog": "Changelog",
     "lock.touchToUnlock": "Touch to unlock",
@@ -379,6 +441,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "lock.wrongMasterPassword": "Wrong master password",
     "lock.biometricUnavailable": "Biometric unlock is unavailable. Use your master password.",
     "home.passwordsStored": "passwords stored",
+    "home.title": "Password Manager",
     "home.searchPlaceholder": "Search passwords...",
     "home.pinned": "Pinned",
     "common.hide": "Hide",
@@ -395,6 +458,20 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.scanDescription": "OCR recognize text from image",
     "quickEntry.scanDetail": "Auto detect login forms",
     "quickEntry.scanAction": "Scan  >",
+    "quickEntry.scanUploadDescription": "Upload a screenshot containing a login form. OCR will extract account, password, and related fields locally.",
+    "quickEntry.scanUploadAction": "Choose screenshot",
+    "quickEntry.scanUploadHint": "or pick from album · PNG / JPG / HEIC",
+    "quickEntry.scanDone": "Recognition complete",
+    "quickEntry.scanFailed": "Recognition failed",
+    "quickEntry.scanOcrResult": "OCR Result",
+    "quickEntry.scanAutoMatch": "Auto-matched fields",
+    "quickEntry.scanRecognized": "{count}/4 recognized",
+    "quickEntry.scanFromScreenshot": "From screenshot",
+    "quickEntry.scanManualNeeded": "Manual needed",
+    "quickEntry.scanInferred": "Inferred",
+    "quickEntry.scanPermissionDenied": "Photo permission is required to choose a screenshot.",
+    "quickEntry.scanError": "Local OCR failed. Rebuild the Android/iOS app and choose a clear screenshot.",
+    "quickEntry.scanWebUnsupported": "Local OCR is not available in the web preview. Please scan in the Android/iOS app.",
     "quickEntry.manualEntry": "Manual entry",
     "quickEntry.manualDescription": "Fill in the form step by step",
     "quickEntry.resultTitle": "Recognition Result",
@@ -407,9 +484,10 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.swapFields": "Swap fields",
     "quickEntry.detectedWebsite": "Website (detected)",
     "quickEntry.recognizing": "Recognizing...",
-    "quickEntry.emptyClipboard": "Clipboard is empty. Example text was used to preview the flow.",
+    "quickEntry.emptyClipboard": "No recognizable text yet.",
     "quickEntry.missingField": "Not detected",
     "addPassword.title": "Add Password",
+    "addPassword.editTitle": "Edit Password",
     "addPassword.category": "Category",
     "addPassword.field.ssid": "SSID",
     "addPassword.field.title": "Title",
@@ -432,7 +510,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "addPassword.passwordStrong": "Strong",
     "addPassword.passwordCharacters": "characters",
     "detail.title": "Password Detail",
-    "detail.copyUser": "Copy user",
+    "detail.copyUser": "Copy all",
     "detail.passwordHealth": "Password Health",
     "detail.strongPassword": "Strong password",
     "detail.mediumPassword": "Medium password",

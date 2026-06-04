@@ -1,117 +1,16 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { ArrowsLeftRight, Camera, CaretLeft, Check, ClipboardText, ListBullets, WarningCircle } from "phosphor-react-native";
+import { ArrowsLeftRight, Camera, CaretLeft, Check, ClipboardText, ListBullets } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, Button, Card } from "@/components/ui";
-import { VaultCategory } from "@/data/vault";
 import { useLanguage } from "@/providers/language";
 import { useTheme } from "@/providers/theme";
+import { DetectedRecord, parseCredentialRecords } from "@/services/credential-parser";
 import { radii, spacing } from "@/theme/tokens";
 
 type RecognitionSource = "clipboard" | "scan";
-
-type DetectedRecord = {
-  id: string;
-  title: string;
-  category: VaultCategory;
-  username: string;
-  password: string;
-  url: string;
-};
-
-const sampleScanText = [
-  "Bilibili",
-  "website: https://bilibili.com",
-  "username: user@example.com",
-  "password: Xy#9kL2m",
-  "",
-  "Taobao",
-  "site: taobao.com",
-  "phone: 13800138000",
-  "pass: Abc@123456",
-].join("\n");
-
-const getDefaultClipboardText = () =>
-  [
-    "Taobao",
-    "网站: taobao.com",
-    "账号: 13800138000",
-    "密码: Abc@123456",
-    "",
-    "Bilibili",
-    "网址: https://bilibili.com",
-    "用户名: user@example.com",
-    "密码: Xy#9kL2m",
-  ].join("\n");
-
-const toTitle = (value: string) => {
-  const clean = value.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
-  const first = clean.split(".")[0] || "New Password";
-  return first.charAt(0).toUpperCase() + first.slice(1);
-};
-
-const normalizeUrl = (value: string) => {
-  if (!value.trim()) return "";
-  return value.startsWith("http://") || value.startsWith("https://") ? value.trim() : `https://${value.trim()}`;
-};
-
-const getValueAfterColon = (line: string) => line.split(/[:：]/).slice(1).join(":").trim();
-
-// 从剪贴板/OCR 文本中按空行拆分账号块，并尽量识别标题、网址、账号和密码。
-const parseRecords = (text: string): DetectedRecord[] => {
-  const blocks = text
-    .split(/\n\s*\n/g)
-    .map((block) => block.trim())
-    .filter(Boolean);
-
-  const records = blocks.flatMap((block, blockIndex) => {
-    const lines = block
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    const joined = lines.join(" ");
-    const urlMatch = joined.match(/(?:https?:\/\/)?(?:www\.)?[\w.-]+\.[a-z]{2,}(?:\/[^\s]*)?/i);
-    const emailMatch = joined.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    const phoneMatch = joined.match(/\b1[3-9]\d{9}\b/);
-    const labeledPassword = lines.find((line) => /密码|password|pass|pwd/i.test(line));
-    const titleLine = lines.find((line) => !/账号|用户|邮箱|手机|密码|网址|网站|username|email|phone|password|pass|pwd|site|url/i.test(line));
-    const rawUrl = lines.find((line) => /网址|网站|site|url/i.test(line)) ? getValueAfterColon(lines.find((line) => /网址|网站|site|url/i.test(line)) ?? "") : urlMatch?.[0] ?? "";
-    const password = labeledPassword ? getValueAfterColon(labeledPassword) : "";
-    const username = emailMatch?.[0] ?? phoneMatch?.[0] ?? "";
-    const url = normalizeUrl(rawUrl);
-    const title = titleLine ?? (url ? toTitle(url) : `Account ${blockIndex + 1}`);
-
-    if (!username && !password && !url) return [];
-
-    return [
-      {
-        id: `${blockIndex}-${title}-${username}`,
-        title,
-        category: "website" as const,
-        username,
-        password,
-        url,
-      },
-    ];
-  });
-
-  return records.length
-    ? records
-    : [
-        // 未识别到结构化信息时保底给一条示例，确保演示流程仍可继续走完。
-        {
-          id: "fallback",
-          title: "Taobao",
-          category: "website",
-          username: "13800138000",
-          password: "Abc@123456",
-          url: "https://taobao.com",
-        },
-      ];
-};
 
 // 快速录入页：模拟剪贴板识别和截图 OCR，把识别结果带入新增密码表单确认。
 export default function QuickEntryScreen() {
@@ -122,30 +21,36 @@ export default function QuickEntryScreen() {
   const [records, setRecords] = useState<DetectedRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [recognized, setRecognized] = useState(false);
 
   const selectedRecord = useMemo(() => records.find((record) => record.id === selectedId) ?? records[0], [records, selectedId]);
 
   const runRecognition = useCallback(
     async (nextSource: RecognitionSource) => {
       setLoading(true);
-      setMessage("");
       setSource(nextSource);
 
       const clipboardText = nextSource === "clipboard" ? await Clipboard.getStringAsync() : "";
-      const isClipboardEmpty = nextSource === "clipboard" && !clipboardText.trim();
       // 扫描入口当前使用固定样本文本；后续接 OCR 时只需替换这里的 text 来源。
-      const text = nextSource === "clipboard" ? clipboardText || getDefaultClipboardText() : sampleScanText;
-      const parsed = parseRecords(text);
+      const text = nextSource === "clipboard" ? clipboardText : "";
+      const parsed = parseCredentialRecords(text);
 
       setRawText(text);
       setRecords(parsed);
       setSelectedId(parsed[0]?.id ?? null);
-      setMessage(isClipboardEmpty ? t("quickEntry.emptyClipboard") : "");
+      setRecognized(true);
       setLoading(false);
     },
-    [t],
+    [],
   );
+
+  const recognizeEditedText = useCallback(() => {
+    const parsed = parseCredentialRecords(rawText);
+
+    setRecords(parsed);
+    setSelectedId(parsed[0]?.id ?? null);
+    setRecognized(true);
+  }, [rawText]);
 
   const swapFields = useCallback(() => {
     if (!selectedRecord) return;
@@ -173,6 +78,7 @@ export default function QuickEntryScreen() {
   }, [selectedRecord]);
 
   const hasResults = records.length > 0;
+  const showResultPanel = recognized || hasResults;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
@@ -205,7 +111,7 @@ export default function QuickEntryScreen() {
           color={colors.green}
           soft={colors.greenSoft}
           disabled={loading}
-          onPress={() => runRecognition("scan")}
+          onPress={() => router.push("/scan-screenshot" as never)}
         />
 
         <View style={styles.orRow}>
@@ -236,14 +142,7 @@ export default function QuickEntryScreen() {
           </Card>
         ) : null}
 
-        {message ? (
-          <View style={[styles.message, { backgroundColor: colors.warningSoft }]}>
-            <WarningCircle size={18} color={colors.warning} weight="fill" />
-            <Text style={[styles.messageText, { color: colors.warning }]}>{message}</Text>
-          </View>
-        ) : null}
-
-        {hasResults ? (
+        {showResultPanel ? (
           <>
             <Card style={[styles.resultPanel, { borderColor: colors.primary }]}>
               <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -253,9 +152,16 @@ export default function QuickEntryScreen() {
               </View>
               <View style={[styles.preview, { backgroundColor: colors.bg }]}>
                 <Text style={[styles.previewLabel, { color: colors.textSubtle }]}>{t("quickEntry.originalText")}</Text>
-                <Text style={[styles.previewText, { color: colors.textMuted }]} numberOfLines={3}>
-                  {rawText}
-                </Text>
+                <TextInput
+                  multiline
+                  value={rawText}
+                  onChangeText={setRawText}
+                  placeholder={t("quickEntry.emptyClipboard")}
+                  placeholderTextColor={colors.textSubtle}
+                  textAlignVertical="top"
+                  underlineColorAndroid="transparent"
+                  style={[styles.previewText, { color: colors.textMuted }]}
+                />
               </View>
               {records.map((record, index) => (
                 <DetectedEntry
@@ -269,12 +175,14 @@ export default function QuickEntryScreen() {
             </Card>
 
             <View style={styles.actions}>
-              <Button variant="secondary" style={styles.actionButton} onPress={() => runRecognition(source)}>
+              <Button variant="secondary" style={styles.actionButton} onPress={recognizeEditedText}>
                 {t("quickEntry.rerecognize")}
               </Button>
-              <Button style={styles.actionButton} onPress={confirmSave}>
-                {t("quickEntry.confirmSave")}
-              </Button>
+              {hasResults ? (
+                <Button style={styles.actionButton} onPress={confirmSave}>
+                  {t("quickEntry.confirmSave")}
+                </Button>
+              ) : null}
             </View>
 
             {selectedRecord ? (
@@ -444,7 +352,7 @@ const styles = StyleSheet.create({
   panelTitle: { fontSize: 15, fontWeight: "800" },
   preview: { borderRadius: radii.md, padding: spacing.lg },
   previewLabel: { fontSize: 11, fontWeight: "800" },
-  previewText: { fontFamily: "monospace", fontSize: 13, lineHeight: 18, marginTop: spacing.md },
+  previewText: { fontFamily: "monospace", fontSize: 13, lineHeight: 18, marginTop: spacing.md, minHeight: 72, padding: 0 },
   detected: {
     alignItems: "center",
     borderRadius: radii.md,

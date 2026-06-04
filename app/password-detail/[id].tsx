@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { CaretLeft, Check, Copy, Eye, EyeSlash, NotePencil, Star, Trash } from "phosphor-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, Button, Card, SectionLabel } from "@/components/ui";
@@ -53,10 +53,23 @@ export default function PasswordDetailScreen() {
     { label: "previous" as const, date: "Apr 10" },
     { label: "older" as const, date: "Mar 2" },
   ];
-  const accountValue = item.username ?? item.url ?? item.password ?? "";
   const accountCopied = copiedKey === "account";
   const passwordCopied = copiedKey === "password";
   const quickCopyDone = copiedKey === "quick-copy";
+  const copyAllValue = useMemo(() => {
+    return [
+      item.title ? `${t("addPassword.field.title")}: ${item.title}` : "",
+      item.url ? `${t("common.website")}: ${item.url}` : "",
+      item.username ? `${t("common.username")}: ${item.username}` : "",
+      item.password ? `${t("common.password")}: ${item.password}` : "",
+    ].filter(Boolean).join("\n");
+  }, [item.password, item.title, item.url, item.username, t]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshVersion((value) => value + 1);
+    }, []),
+  );
 
   useEffect(() => {
     return () => {
@@ -97,6 +110,13 @@ export default function PasswordDetailScreen() {
     ]);
   };
 
+  const editItem = () => {
+    router.push({
+      pathname: "/add-password",
+      params: { id: item.id },
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.nav}>
@@ -104,7 +124,9 @@ export default function PasswordDetailScreen() {
           <CaretLeft size={28} color={colors.text} weight="bold" />
         </Pressable>
         <Text style={styles.navTitle}>{t("detail.title")}</Text>
-        <NotePencil size={20} color={colors.primary} weight="regular" />
+        <Pressable onPress={editItem} hitSlop={8} style={styles.editButton}>
+          <NotePencil size={20} color={colors.primary} weight="regular" />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -147,7 +169,7 @@ export default function PasswordDetailScreen() {
         </Card>
 
         <View style={styles.quickActions}>
-          <Action copied={quickCopyDone} icon="copy" label={quickCopyDone ? t("common.copied") : t("detail.copyUser")} onPress={() => copyValue(accountValue, "quick-copy")} />
+          <Action copied={quickCopyDone} icon="copy" label={quickCopyDone ? t("common.copied") : t("detail.copyUser")} onPress={() => copyValue(copyAllValue, "quick-copy")} />
           <Action icon="star" label={t("common.favorite")} active={item.favorite} onPress={toggleFavorite} />
           <Action icon="trash" label={t("common.delete")} danger onPress={confirmMoveToRecycleBin} />
         </View>
@@ -241,6 +263,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   nav: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", padding: spacing.lg },
   back: { marginLeft: -spacing.sm },
+  editButton: { alignItems: "center", height: 32, justifyContent: "center", width: 32 },
   navTitle: { color: colors.text, fontSize: 17, fontWeight: "800" },
   content: { gap: spacing.xl, padding: spacing.xl, paddingBottom: spacing.xxxl },
   hero: { alignItems: "center", gap: spacing.md, paddingVertical: spacing.xl },

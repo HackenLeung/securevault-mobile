@@ -89,8 +89,8 @@ export const radii = {
 
 export const shadow = {
   shadowColor: "#0F172A",
-  shadowOpacity: 0.08,
-  shadowOffset: { width: 0, height: 8 },
-  shadowRadius: 18,
-  elevation: 3,
+  shadowOpacity: 0.035,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 10,
+  elevation: 1,
 };

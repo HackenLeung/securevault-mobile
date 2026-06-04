@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, GestureResponderEvent, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Card, Field, PasswordField, SectionLabel } from "@/components/ui";
-import { addVaultItem, VaultCategory } from "@/data/vault";
+import { addVaultItem, findVaultItem, updateVaultItem, VaultCategory } from "@/data/vault";
 import { useLanguage } from "@/providers/language";
 import { colors, radii, spacing } from "@/theme/tokens";
 
@@ -85,19 +85,25 @@ const getPasswordStrength = (password: string) => {
 export default function AddPasswordScreen() {
   const { t, language } = useLanguage();
   const params = useLocalSearchParams<{
+    id?: string;
     category?: VaultCategory;
     title?: string;
     username?: string;
     password?: string;
     url?: string;
   }>();
-  const initialCategory = params.category && categories.includes(params.category) ? params.category : "website";
+  const editingItem = useMemo(() => findVaultItem(params.id), [params.id]);
+  const isEditing = Boolean(editingItem);
+  const initialCategory =
+    params.category && categories.includes(params.category)
+      ? params.category
+      : editingItem?.category ?? "website";
   const [category, setCategory] = useState<VaultCategory>(initialCategory);
-  const [title, setTitle] = useState(params.title ?? "");
-  const [websiteUrl, setWebsiteUrl] = useState(params.url ?? "");
-  const [account, setAccount] = useState(params.username ?? "");
-  const [password, setPassword] = useState(params.password ?? "");
-  const [favorite, setFavorite] = useState(false);
+  const [title, setTitle] = useState(params.title ?? editingItem?.title ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(params.url ?? editingItem?.url ?? "");
+  const [account, setAccount] = useState(params.username ?? editingItem?.username ?? "");
+  const [password, setPassword] = useState(params.password ?? editingItem?.password ?? "");
+  const [favorite, setFavorite] = useState(editingItem?.favorite ?? false);
   const [passwordLength, setPasswordLength] = useState(DEFAULT_LENGTH);
   const [generatedLength, setGeneratedLength] = useState(DEFAULT_LENGTH);
   const [isSliding, setIsSliding] = useState(false);
@@ -196,13 +202,9 @@ export default function AddPasswordScreen() {
     setPassword(generated);
   }, [generated]);
 
-  const resetCategorySpecificFields = useCallback((nextCategory: VaultCategory) => {
-    // 切换分类后清空分类相关字段，避免网站 URL 等数据误带到 WiFi。
+  const switchCategory = useCallback((nextCategory: VaultCategory) => {
+    // 只切换展示分类，保留快速录入/手动输入的内容；切回网站时网址仍可继续编辑。
     setCategory(nextCategory);
-    setTitle("");
-    setWebsiteUrl("");
-    setAccount("");
-    setPassword("");
   }, []);
 
   const handleSave = useCallback(() => {
@@ -214,6 +216,29 @@ export default function AddPasswordScreen() {
         language === "zh" ? "请补全信息" : "Missing information",
         language === "zh" ? "标题和密码不能为空。" : "Title and password cannot be empty.",
       );
+      return;
+    }
+
+    if (editingItem) {
+      updateVaultItem(editingItem.id, {
+        title: trimmedTitle,
+        category,
+        username: account.trim() || undefined,
+        password: trimmedPassword,
+        url: category === "website" ? websiteUrl.trim() || undefined : undefined,
+        favorite,
+        passwordHistory:
+          editingItem.password && editingItem.password !== trimmedPassword
+            ? [
+                { label: "current", date: "Today" },
+                { label: "previous", date: editingItem.updatedAt },
+                ...(editingItem.passwordHistory ?? []).filter((entry) => entry.label !== "current").slice(0, 1),
+              ]
+            : editingItem.passwordHistory,
+        updatedAt: "Today",
+      });
+
+      router.dismissTo(`/password-detail/${editingItem.id}`);
       return;
     }
 
@@ -233,7 +258,7 @@ export default function AddPasswordScreen() {
     });
 
     router.replace(`/password-detail/${id}`);
-  }, [account, category, favorite, language, password, title, websiteUrl]);
+  }, [account, category, editingItem, favorite, language, password, title, websiteUrl]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -241,7 +266,7 @@ export default function AddPasswordScreen() {
         <Pressable onPress={() => router.back()} style={styles.navButton}>
           <CaretLeft size={28} color={colors.text} weight="bold" />
         </Pressable>
-        <Text style={styles.navTitle}>{t("addPassword.title")}</Text>
+        <Text style={styles.navTitle}>{isEditing ? t("addPassword.editTitle") : t("addPassword.title")}</Text>
         <Pressable onPress={handleSave} hitSlop={8}>
           <Text style={styles.save}>{t("common.save")}</Text>
         </Pressable>
@@ -253,7 +278,7 @@ export default function AddPasswordScreen() {
           {categories.map((item) => {
             const active = item === category;
             return (
-              <Pressable key={item} onPress={() => resetCategorySpecificFields(item)} style={[styles.chip, active && styles.chipActive]}>
+              <Pressable key={item} onPress={() => switchCategory(item)} style={[styles.chip, active && styles.chipActive]}>
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(getCategoryLabelKey(item))}</Text>
               </Pressable>
             );

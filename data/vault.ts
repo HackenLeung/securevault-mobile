@@ -97,7 +97,21 @@ export const addVaultItem = (item: VaultItem) => {
   return item;
 };
 
+export const updateVaultItem = (id: string, nextItem: Omit<VaultItem, "id">) => {
+  const index = vaultItems.findIndex((item) => item.id === id && !item.deletedAt);
+  if (index < 0) return null;
+
+  vaultItems[index] = {
+    ...vaultItems[index],
+    ...nextItem,
+    id,
+  };
+  return vaultItems[index];
+};
+
 export const getVisibleVaultItems = () => vaultItems.filter((item) => !item.deletedAt);
+
+export const getDeletedVaultItems = () => vaultItems.filter((item) => item.deletedAt);
 
 export const findVaultItem = (id?: string) => getVisibleVaultItems().find((item) => item.id === id);
 
@@ -116,6 +130,46 @@ export const moveVaultItemToRecycleBin = (id: string) => {
   item.deletedAt = "Today";
   item.favorite = false;
   return item;
+};
+
+export const restoreVaultItem = (id: string) => {
+  const item = vaultItems.find((entry) => entry.id === id && entry.deletedAt);
+  if (!item) return null;
+
+  delete item.deletedAt;
+  return item;
+};
+
+export const deleteVaultItemPermanently = (id: string) => {
+  const index = vaultItems.findIndex((entry) => entry.id === id && entry.deletedAt);
+  if (index < 0) return null;
+
+  const [deleted] = vaultItems.splice(index, 1);
+  return deleted;
+};
+
+export const exportVaultItems = () => ({
+  version: 1,
+  exportedAt: new Date().toISOString(),
+  items: vaultItems,
+});
+
+export const importVaultItems = (items: VaultItem[]) => {
+  let importedCount = 0;
+
+  items.forEach((item) => {
+    const existingIndex = vaultItems.findIndex((entry) => entry.id === item.id);
+    if (existingIndex >= 0) {
+      vaultItems[existingIndex] = { ...vaultItems[existingIndex], ...item };
+      importedCount += 1;
+      return;
+    }
+
+    vaultItems.unshift(item);
+    importedCount += 1;
+  });
+
+  return importedCount;
 };
 
 export const maskAccount = (value?: string) => {

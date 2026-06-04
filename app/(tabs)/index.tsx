@@ -1,6 +1,6 @@
 import * as Clipboard from "expo-clipboard";
 import { router, useFocusEffect } from "expo-router";
-import { Check, Copy, MagnifyingGlass, Lightning, Plus, Star, Gear } from "phosphor-react-native";
+import { Check, Copy, Gear, Lightning, MagnifyingGlass, Plus, Star } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -16,12 +16,12 @@ import {
   UIManager,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "@/components/ui";
-import { useFabMenu } from "@/providers/fab-menu";
+import { getVisibleVaultItems, maskAccount, VaultCategory, VaultItem } from "@/data/vault";
 import { useLanguage } from "@/providers/language";
-import { categoryMeta, getVisibleVaultItems, maskAccount, VaultCategory } from "@/data/vault";
-import { colors, radii, shadow, spacing } from "@/theme/tokens";
+import { useTheme } from "@/providers/theme";
+import { colors as tokenColors, radii, spacing } from "@/theme/tokens";
 
 const tabs: Array<"all" | VaultCategory> = ["all", "website", "app", "wifi"];
 
@@ -38,13 +38,35 @@ export default function HomeScreen() {
   const [dataVersion, setDataVersion] = useState(0);
   const [copiedItemId, setCopiedItemId] = useState<string | null>(null);
   const { t } = useLanguage();
-  const insets = useSafeAreaInsets();
-  const { fabOpen, setFabOpen } = useFabMenu();
+  const { colors, theme } = useTheme();
 
   const pinnedAnim = useRef(new Animated.Value(1)).current;
   const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const floatingBottom = Math.max(insets.bottom + 36, 36);
+  const isDark = theme === "dark";
+
+  const getAccent = useCallback(
+    (item: VaultItem) => {
+      const title = item.title.toLowerCase();
+
+      if (title.includes("taobao")) {
+        return { color: "#FF6A00", solid: "#FF6A00", soft: isDark ? "#4A1D08" : "#FFF3E8" };
+      }
+
+      if (title.includes("wechat")) {
+        return { color: "#05C160", solid: "#05C160", soft: isDark ? "#073B22" : "#EAFBF1" };
+      }
+
+      if (title.includes("github")) {
+        return { color: isDark ? "#FFFFFF" : "#111827", solid: "#111827", soft: isDark ? "#050608" : "#F1F5F9" };
+      }
+
+      if (item.category === "app") return { color: colors.purple, solid: colors.purple, soft: colors.purpleSoft };
+      if (item.category === "wifi") return { color: colors.green, solid: colors.green, soft: colors.greenSoft };
+      return { color: colors.primary, solid: colors.primary, soft: colors.primarySoft };
+    },
+    [colors, isDark],
+  );
 
   const filtered = useMemo(() => {
     // 搜索范围覆盖标题、账号和 URL；分类筛选与关键词同时满足才展示。
@@ -113,37 +135,60 @@ export default function HomeScreen() {
     setCategory(tab);
   };
 
-  const toggleFab = () => {
-    setFabOpen(!fabOpen);
-  };
+  const navigateHeaderAction = (path: "/quick-entry" | "/add-password" | "/settings") => {
+    if (path === "/quick-entry") {
+      router.push("/quick-entry" as never);
+      return;
+    }
 
-  const navigateFromFab = (path: "/quick-entry" | "/add-password" | "/settings") => {
-    // 先关闭浮层再跳转，避免返回首页时菜单还保持展开状态。
-    setFabOpen(false);
     router.push(path);
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <View style={styles.content}>
         <View style={styles.fixedTop}>
-          <View style={styles.search}>
-            <MagnifyingGlass size={18} color={colors.textSubtle} weight="regular" />
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.text }]}>{t("home.title")}</Text>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => navigateHeaderAction("/quick-entry")}
+                style={({ pressed }) => [styles.headerButton, { backgroundColor: colors.purpleSoft }, pressed && styles.pressed]}
+              >
+                <Lightning size={19} color={colors.purple} weight="bold" />
+              </Pressable>
+              <Pressable
+                onPress={() => navigateHeaderAction("/add-password")}
+                style={({ pressed }) => [styles.headerButton, { backgroundColor: colors.primarySoft }, pressed && styles.pressed]}
+              >
+                <Plus size={19} color={colors.primary} weight="bold" />
+              </Pressable>
+              <Pressable
+                onPress={() => navigateHeaderAction("/settings")}
+                style={({ pressed }) => [styles.headerButton, { backgroundColor: colors.surfaceMuted }, pressed && styles.pressed]}
+              >
+                <Gear size={19} color={colors.textMuted} weight="regular" />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <MagnifyingGlass size={17} color={colors.textSubtle} weight="regular" />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder={t("home.searchPlaceholder")}
               placeholderTextColor={colors.textSubtle}
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.text }]}
             />
           </View>
 
           {hasPinned ? (
             <>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t("home.pinned")}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("home.pinned")}</Text>
                 <Pressable onPress={togglePinned} hitSlop={8}>
-                  <Text style={styles.link}>{showPinned ? t("common.hide") : t("common.show")}</Text>
+                  <Text style={[styles.link, { color: colors.textSubtle }]}>{showPinned ? t("common.hide") : t("common.show")}</Text>
                 </Pressable>
               </View>
 
@@ -151,37 +196,35 @@ export default function HomeScreen() {
                 style={[
                   styles.pinnedWrap,
                   {
-                    height: pinnedAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 80],
-                    }),
+                    height: pinnedAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 58] }),
                     opacity: pinnedAnim,
-                    marginBottom: pinnedAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, spacing.lg],
-                    }),
+                    marginBottom: pinnedAnim.interpolate({ inputRange: [0, 1], outputRange: [0, spacing.md] }),
                   },
                 ]}
               >
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pinnedRow}>
-                  {pinned.map((item) => (
-                    <Pressable key={item.id} onPress={() => router.push(`/password-detail/${item.id}`)}>
-                      <Card style={styles.pinnedCard}>
-                        <View style={[styles.initial, { backgroundColor: categoryMeta[item.category].soft }]}>
-                          <Text style={[styles.initialText, { color: categoryMeta[item.category].color }]}>{item.title[0]}</Text>
-                        </View>
-                        <View style={styles.pinnedText}>
-                          <Text style={styles.itemTitle} numberOfLines={1}>
-                            {item.title}
-                          </Text>
-                          <Text style={styles.itemSub} numberOfLines={1}>
-                            {maskAccount(item.username)}
-                          </Text>
-                        </View>
-                        <Star size={18} color={colors.favorite} weight="regular" />
-                      </Card>
-                    </Pressable>
-                  ))}
+                  {pinned.map((item) => {
+                    const accent = getAccent(item);
+
+                    return (
+                      <Pressable key={item.id} onPress={() => router.push(`/password-detail/${item.id}`)}>
+                        <Card style={[styles.pinnedCard, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                          <View style={[styles.initial, { backgroundColor: accent.solid }]}>
+                            <Text style={styles.initialTextSolid}>{item.title[0]}</Text>
+                          </View>
+                          <View style={styles.pinnedText}>
+                            <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
+                              {item.title}
+                            </Text>
+                            <Text style={[styles.itemSub, { color: colors.textSubtle }]} numberOfLines={1}>
+                              {maskAccount(item.username)}
+                            </Text>
+                          </View>
+                          <Star size={17} color={colors.favorite} weight="fill" />
+                        </Card>
+                      </Pressable>
+                    );
+                  })}
                 </ScrollView>
               </Animated.View>
             </>
@@ -227,36 +270,35 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.listScroller}
           contentContainerStyle={styles.list}
-          renderItem={({ item, index }) => {
-            const meta = categoryMeta[item.category];
+          renderItem={({ item }) => {
+            const accent = getAccent(item);
             const copied = copiedItemId === item.id;
+
             return (
-              <Animated.View
-                style={{
-                  opacity: 1,
-                  transform: [{ translateY: 0 }],
-                }}
-              >
+              <Animated.View style={styles.listAnimation}>
                 <Pressable onPress={() => router.push(`/password-detail/${item.id}`)}>
-                  <Card style={[styles.listItem, index === 0 && styles.firstListItem]}>
-                    <View style={[styles.iconBox, { backgroundColor: meta.soft }]}>
-                      <Text style={[styles.initialText, { color: meta.color }]}>{item.title[0]}</Text>
+                  <Card style={[styles.listItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <View style={[styles.iconBox, { backgroundColor: accent.soft }]}>
+                      <Text style={[styles.initialText, { color: accent.color }]}>{item.title[0]}</Text>
                     </View>
                     <View style={styles.itemText}>
-                      <Text style={styles.itemTitle} numberOfLines={1}>
+                      <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
                         {item.title}
                       </Text>
-                      <Text style={styles.itemSub} numberOfLines={1}>
+                      <Text style={[styles.itemSub, { color: colors.textSubtle }]} numberOfLines={1}>
                         {item.username}
                       </Text>
                     </View>
-                    <Pressable onPress={() => copyPassword(item.id, item.password)} style={[styles.copyPill, copied && styles.copyPillDone]}>
+                    <Pressable
+                      onPress={() => copyPassword(item.id, item.password)}
+                      style={[styles.copyPill, { backgroundColor: copied ? colors.greenSoft : colors.surfaceMuted }]}
+                    >
                       {copied ? (
                         <Check size={12} color={colors.green} weight="bold" />
                       ) : (
-                        <Copy size={12} color={colors.primary} weight="regular" />
+                        <Copy size={12} color={colors.textMuted} weight="regular" />
                       )}
-                      <Text style={[styles.copyText, copied && styles.copyTextDone]}>{copied ? t("common.copied") : t("common.copy")}</Text>
+                      <Text style={[styles.copyText, { color: copied ? colors.green : colors.textMuted }]}>{copied ? t("common.copied") : t("common.copy")}</Text>
                     </Pressable>
                   </Card>
                 </Pressable>
@@ -265,95 +307,87 @@ export default function HomeScreen() {
           }}
         />
       </View>
-
-      <View pointerEvents="box-none" style={styles.fabLayer}>
-        {fabOpen ? (
-          <Pressable style={styles.overlay} onPress={() => setFabOpen(false)} />
-        ) : null}
-
-        <View pointerEvents="box-none" style={[styles.floatingActions, { bottom: floatingBottom }]}>
-          {fabOpen ? (
-            <View style={styles.fabMenu}>
-              <Pressable style={styles.menuItem} onPress={() => navigateFromFab("/quick-entry")}>
-                <View style={[styles.menuIcon, { backgroundColor: colors.purpleSoft }]}>
-                  <Lightning size={16} color={colors.purple} weight="regular" />
-                </View>
-                <Text style={styles.menuText}>{t("home.quickEntry")}</Text>
-              </Pressable>
-              <Pressable style={styles.menuItem} onPress={() => navigateFromFab("/add-password")}>
-                <View style={[styles.menuIcon, { backgroundColor: colors.primarySoft }]}>
-                  <Plus size={17} color={colors.primary} weight="bold" />
-                </View>
-                <Text style={styles.menuText}>{t("home.addPassword")}</Text>
-              </Pressable>
-              <Pressable style={styles.menuItem} onPress={() => navigateFromFab("/settings")}>
-                <View style={[styles.menuIcon, { backgroundColor: colors.warningSoft }]}>
-                  <Gear size={16} color={colors.warning} weight="regular" />
-                </View>
-                <Text style={styles.menuText}>{t("tabs.settings")}</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          <Pressable style={styles.fab} onPress={toggleFab}>
-            <Plus color="#FFFFFF" size={30} weight="bold" />
-          </Pressable>
-        </View>
-      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { flex: 1, padding: spacing.xl, paddingTop: spacing.xxl },
+  safe: { flex: 1 },
+  content: { flex: 1, padding: spacing.xl, paddingTop: spacing.xl },
   fixedTop: {
     zIndex: 1,
   },
+  header: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: spacing.xl,
+  },
+  title: {
+    fontSize: 19,
+    fontWeight: "900",
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  headerButton: {
+    alignItems: "center",
+    borderRadius: radii.md,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  pressed: {
+    opacity: 0.76,
+    transform: [{ scale: 0.97 }],
+  },
   search: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     gap: spacing.sm,
-    height: 44,
+    height: 40,
     paddingHorizontal: spacing.lg,
   },
-  searchInput: { color: colors.text, flex: 1, fontSize: 14 },
+  searchInput: { flex: 1, fontSize: 13, fontWeight: "600", paddingVertical: 0 },
   sectionHeader: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: spacing.md,
-    marginTop: spacing.xxxl,
+    marginTop: spacing.xxl,
   },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: "700" },
-  link: { color: colors.primary, fontSize: 13, fontWeight: "600" },
+  sectionTitle: { fontSize: 15, fontWeight: "800" },
+  link: { fontSize: 12, fontWeight: "600" },
   pinnedWrap: {
     overflow: "hidden",
   },
-  pinnedRow: { gap: spacing.md, paddingRight: spacing.xl },
+  pinnedRow: { gap: spacing.sm, paddingRight: spacing.xl },
   pinnedCard: {
     alignItems: "center",
+    borderRadius: radii.md,
     flexDirection: "row",
     gap: spacing.md,
-    height: 80,
+    height: 58,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     shadowOpacity: 0,
-    width: 180,
+    width: 170,
   },
   initial: {
     alignItems: "center",
-    borderRadius: radii.md,
-    height: 40,
+    borderRadius: radii.sm,
+    height: 32,
     justifyContent: "center",
-    width: 40,
+    width: 32,
   },
-  initialText: { fontSize: 16, fontWeight: "800" },
+  initialText: { fontSize: 15, fontWeight: "900" },
+  initialTextSolid: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
   pinnedText: { flex: 1 },
   tabs: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: tokenColors.surfaceMuted,
     borderRadius: radii.md,
     flexDirection: "row",
     padding: 2,
@@ -363,7 +397,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   tabIndicator: {
-    backgroundColor: colors.primary,
+    backgroundColor: tokenColors.primary,
     borderRadius: 10,
     bottom: 2,
     left: 2,
@@ -378,94 +412,45 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 1,
   },
-  tabText: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },
+  tabText: { color: tokenColors.textMuted, fontSize: 12, fontWeight: "700" },
   activeTabText: { color: "#FFFFFF" },
   listScroller: {
     flex: 1,
-    marginTop: spacing.xxl,
+    marginTop: spacing.md,
   },
-  list: { gap: spacing.md, paddingBottom: 152 },
-  firstListItem: {
-    marginTop: 0,
+  list: { gap: spacing.sm, paddingBottom: spacing.xxxl },
+  listAnimation: {
+    opacity: 1,
+    transform: [{ translateY: 0 }],
   },
   listItem: {
     alignItems: "center",
+    borderRadius: radii.md,
     flexDirection: "row",
     gap: spacing.lg,
-    minHeight: 72,
-    paddingVertical: spacing.md,
+    minHeight: 64,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    shadowOpacity: 0,
   },
   iconBox: {
     alignItems: "center",
-    borderRadius: radii.md,
-    height: 40,
+    borderRadius: radii.sm,
+    height: 36,
     justifyContent: "center",
-    width: 40,
+    width: 36,
   },
   itemText: { flex: 1 },
-  itemTitle: { color: colors.text, fontSize: 15, fontWeight: "700" },
-  itemSub: { color: colors.textSubtle, fontSize: 13, marginTop: 4 },
+  itemTitle: { fontSize: 14, fontWeight: "800" },
+  itemSub: { fontSize: 12, marginTop: 3 },
   copyPill: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
     borderRadius: radii.sm,
-    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     gap: spacing.xs,
+    minWidth: 64,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  copyPillDone: {
-    backgroundColor: colors.greenSoft,
-    borderColor: colors.green,
-  },
-  copyText: { color: colors.primary, fontSize: 12, fontWeight: "700" },
-  copyTextDone: { color: colors.green },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15, 23, 42, 0.14)",
-  },
-  fabLayer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 20,
-  },
-  floatingActions: {
-    alignItems: "flex-end",
-    position: "absolute",
-    right: spacing.xl,
-    zIndex: 21,
-  },
-  fabMenu: {
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  menuItem: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    flexDirection: "row",
-    gap: spacing.md,
-    height: 52,
-    paddingHorizontal: spacing.md,
-    width: 180,
-    ...shadow,
-  },
-  menuIcon: {
-    alignItems: "center",
-    borderRadius: radii.sm,
-    height: 28,
-    justifyContent: "center",
-    width: 28,
-  },
-  menuText: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  fab: {
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    borderRadius: 28,
-    height: 56,
-    justifyContent: "center",
-    width: 56,
-    ...shadow,
-  },
+  copyText: { fontSize: 12, fontWeight: "800" },
 });

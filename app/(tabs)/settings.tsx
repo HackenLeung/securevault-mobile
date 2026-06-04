@@ -6,7 +6,6 @@ import {
   CaretRight,
   Check,
   Clock,
-  Download,
   Fingerprint,
   Globe,
   Key,
@@ -14,12 +13,16 @@ import {
   Moon,
   Sliders,
   Trash,
-  Upload,
 } from "phosphor-react-native";
 import { useState } from "react";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Card, PasswordField, SectionLabel } from "@/components/ui";
+import {
+  deleteVaultItemPermanently,
+  getDeletedVaultItems,
+  restoreVaultItem,
+} from "@/data/vault";
 import { useLanguage } from "@/providers/language";
 import { AutoLockMinutes, useSecurity } from "@/providers/security";
 import { ThemePreference, useTheme } from "@/providers/theme";
@@ -33,8 +36,6 @@ const settingIcons = {
   clock: Clock,
   "camera-off": CameraSlash,
   sliders: Sliders,
-  upload: Upload,
-  download: Download,
   "trash-2": Trash,
   "refresh-cw": ArrowsClockwise,
   list: ListBullets,
@@ -85,6 +86,9 @@ export default function SettingsScreen() {
   const [nextPassword, setNextPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [recycleBinVisible, setRecycleBinVisible] = useState(false);
+  const [, setRecycleVersion] = useState(0);
+  const deletedItems = getDeletedVaultItems();
 
   const getAutoLockValue = (minutes: AutoLockMinutes) => {
     // 自动锁定时长用枚举值存储，展示时再映射到当前语言文案。
@@ -149,6 +153,25 @@ export default function SettingsScreen() {
   const handleSelectAutoLock = async (minutes: AutoLockMinutes) => {
     await setAutoLockMinutes(minutes);
     setAutoLockModalVisible(false);
+  };
+
+  const handleRestoreItem = (id: string) => {
+    restoreVaultItem(id);
+    setRecycleVersion((value) => value + 1);
+  };
+
+  const handleDeleteForever = (id: string) => {
+    Alert.alert(t("settings.data.deleteForeverTitle"), t("settings.data.deleteForeverMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("settings.data.deleteForever"),
+        style: "destructive",
+        onPress: () => {
+          deleteVaultItemPermanently(id);
+          setRecycleVersion((value) => value + 1);
+        },
+      },
+    ]);
   };
 
   const groups: SettingGroup[] = [
@@ -227,9 +250,7 @@ export default function SettingsScreen() {
     {
       title: t("settings.group.data"),
       items: [
-        { icon: "upload", label: t("settings.data.export"), color: colors.green, soft: colors.greenSoft },
-        { icon: "download", label: t("settings.data.import"), color: colors.green, soft: colors.greenSoft },
-        { icon: "trash-2", label: t("settings.data.recycleBin"), color: colors.green, soft: colors.greenSoft },
+        { icon: "trash-2", label: t("settings.data.recycleBin"), value: String(deletedItems.length), color: colors.green, soft: colors.greenSoft, onPress: () => setRecycleBinVisible(true) },
       ],
     },
     {
@@ -365,6 +386,39 @@ export default function SettingsScreen() {
             </View>
           </View>
         </Modal>
+
+        <Modal animationType="fade" transparent visible={recycleBinVisible} onRequestClose={() => setRecycleBinVisible(false)}>
+          <View style={styles.modalLayer}>
+            <Pressable style={styles.modalBackdrop} onPress={() => setRecycleBinVisible(false)} />
+            <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t("settings.data.recycleBin")}</Text>
+              {deletedItems.length ? (
+                <ScrollView style={styles.recycleList} contentContainerStyle={styles.recycleContent}>
+                  {deletedItems.map((item) => (
+                    <View key={item.id} style={[styles.recycleRow, { backgroundColor: colors.surfaceMuted }]}>
+                      <View style={styles.recycleText}>
+                        <Text style={[styles.recycleTitle, { color: colors.text }]} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text style={[styles.recycleSub, { color: colors.textSubtle }]} numberOfLines={1}>
+                          {item.username ?? item.url ?? item.deletedAt}
+                        </Text>
+                      </View>
+                      <Pressable onPress={() => handleRestoreItem(item.id)} style={[styles.recycleAction, { backgroundColor: colors.primarySoft }]}>
+                        <Text style={[styles.recycleActionText, { color: colors.primary }]}>{t("settings.data.restore")}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => handleDeleteForever(item.id)} style={[styles.recycleAction, { backgroundColor: getDangerSoft(theme === "dark") }]}>
+                        <Text style={[styles.recycleActionText, { color: colors.danger }]}>{t("settings.data.deleteForever")}</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text style={[styles.emptyText, { color: colors.textSubtle }]}>{t("settings.data.recycleEmpty")}</Text>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -476,6 +530,47 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.78,
+  },
+  recycleList: {
+    maxHeight: 360,
+  },
+  recycleContent: {
+    gap: spacing.sm,
+  },
+  recycleRow: {
+    alignItems: "center",
+    borderRadius: radii.md,
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 58,
+    padding: spacing.md,
+  },
+  recycleText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  recycleTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  recycleSub: {
+    fontSize: 12,
+    marginTop: 3,
+  },
+  recycleAction: {
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  recycleActionText: {
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  emptyText: {
+    fontSize: 13,
+    fontWeight: "700",
+    paddingVertical: spacing.xl,
+    textAlign: "center",
   },
 });
 

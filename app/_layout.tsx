@@ -1,6 +1,5 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { FabMenuProvider } from "@/providers/fab-menu";
 import { LanguageProvider } from "@/providers/language";
 import { SecurityProvider } from "@/providers/security";
 import { ThemeProvider, useTheme } from "@/providers/theme";
@@ -19,6 +18,7 @@ function RootStack() {
         <Stack.Screen name="language" />
         <Stack.Screen name="theme" />
         <Stack.Screen name="quick-entry" />
+        <Stack.Screen name="scan-screenshot" />
         <Stack.Screen name="password-detail/[id]" />
       </Stack>
     </>
@@ -30,9 +30,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <LanguageProvider>
         <SecurityProvider>
-          <FabMenuProvider>
-            <RootStack />
-          </FabMenuProvider>
+          <RootStack />
         </SecurityProvider>
       </LanguageProvider>
     </ThemeProvider>
