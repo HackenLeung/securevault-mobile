@@ -35,13 +35,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-secure-store",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "SecureVault uses selected screenshots for local OCR only."
-        }
-      ]
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

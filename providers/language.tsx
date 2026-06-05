@@ -87,24 +87,6 @@ type TranslationKey =
   | "quickEntry.pasteDescription"
   | "quickEntry.pasteDetail"
   | "quickEntry.pasteAction"
-  | "quickEntry.scanTitle"
-  | "quickEntry.scanDescription"
-  | "quickEntry.scanDetail"
-  | "quickEntry.scanAction"
-  | "quickEntry.scanUploadDescription"
-  | "quickEntry.scanUploadAction"
-  | "quickEntry.scanUploadHint"
-  | "quickEntry.scanDone"
-  | "quickEntry.scanFailed"
-  | "quickEntry.scanOcrResult"
-  | "quickEntry.scanAutoMatch"
-  | "quickEntry.scanRecognized"
-  | "quickEntry.scanFromScreenshot"
-  | "quickEntry.scanManualNeeded"
-  | "quickEntry.scanInferred"
-  | "quickEntry.scanPermissionDenied"
-  | "quickEntry.scanError"
-  | "quickEntry.scanWebUnsupported"
   | "quickEntry.manualEntry"
   | "quickEntry.manualDescription"
   | "quickEntry.resultTitle"
@@ -271,24 +253,6 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.pasteDescription": "粘贴账号信息，自动提取",
     "quickEntry.pasteDetail": "用户名、密码、网站",
     "quickEntry.pasteAction": "粘贴  >",
-    "quickEntry.scanTitle": "扫描截图",
-    "quickEntry.scanDescription": "OCR 识别图片中的文字",
-    "quickEntry.scanDetail": "自动识别登录表单",
-    "quickEntry.scanAction": "扫描  >",
-    "quickEntry.scanUploadDescription": "上传包含登录表单的截图，系统将自动 OCR 识别并提取账号、密码等字段。数据仅在本地处理。",
-    "quickEntry.scanUploadAction": "点击选择截图",
-    "quickEntry.scanUploadHint": "或从相册选取 · PNG / JPG / HEIC",
-    "quickEntry.scanDone": "识别完成",
-    "quickEntry.scanFailed": "识别失败",
-    "quickEntry.scanOcrResult": "OCR 识别结果",
-    "quickEntry.scanAutoMatch": "自动匹配字段",
-    "quickEntry.scanRecognized": "{count}/4 已识别",
-    "quickEntry.scanFromScreenshot": "来自截图",
-    "quickEntry.scanManualNeeded": "需手动填写",
-    "quickEntry.scanInferred": "推断",
-    "quickEntry.scanPermissionDenied": "需要相册权限才能选择截图。",
-    "quickEntry.scanError": "本地 OCR 识别失败。请确认已重新构建 Android/iOS App，并选择清晰截图。",
-    "quickEntry.scanWebUnsupported": "Web 预览暂不支持本地 OCR，请在 Android/iOS App 中选择截图识别。",
     "quickEntry.manualEntry": "手动录入",
     "quickEntry.manualDescription": "按步骤填写表单",
     "quickEntry.resultTitle": "识别结果",
@@ -454,24 +418,6 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "quickEntry.pasteDescription": "Paste account info, auto extract",
     "quickEntry.pasteDetail": "username, password, website",
     "quickEntry.pasteAction": "Paste  >",
-    "quickEntry.scanTitle": "Scan screenshot",
-    "quickEntry.scanDescription": "OCR recognize text from image",
-    "quickEntry.scanDetail": "Auto detect login forms",
-    "quickEntry.scanAction": "Scan  >",
-    "quickEntry.scanUploadDescription": "Upload a screenshot containing a login form. OCR will extract account, password, and related fields locally.",
-    "quickEntry.scanUploadAction": "Choose screenshot",
-    "quickEntry.scanUploadHint": "or pick from album · PNG / JPG / HEIC",
-    "quickEntry.scanDone": "Recognition complete",
-    "quickEntry.scanFailed": "Recognition failed",
-    "quickEntry.scanOcrResult": "OCR Result",
-    "quickEntry.scanAutoMatch": "Auto-matched fields",
-    "quickEntry.scanRecognized": "{count}/4 recognized",
-    "quickEntry.scanFromScreenshot": "From screenshot",
-    "quickEntry.scanManualNeeded": "Manual needed",
-    "quickEntry.scanInferred": "Inferred",
-    "quickEntry.scanPermissionDenied": "Photo permission is required to choose a screenshot.",
-    "quickEntry.scanError": "Local OCR failed. Rebuild the Android/iOS app and choose a clear screenshot.",
-    "quickEntry.scanWebUnsupported": "Local OCR is not available in the web preview. Please scan in the Android/iOS app.",
     "quickEntry.manualEntry": "Manual entry",
     "quickEntry.manualDescription": "Fill in the form step by step",
     "quickEntry.resultTitle": "Recognition Result",

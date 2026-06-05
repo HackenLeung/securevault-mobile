@@ -1,6 +1,6 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { ArrowsLeftRight, Camera, CaretLeft, Check, ClipboardText, ListBullets } from "phosphor-react-native";
+import { ArrowsLeftRight, CaretLeft, Check, ClipboardText, ListBullets } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,13 +10,10 @@ import { useTheme } from "@/providers/theme";
 import { DetectedRecord, parseCredentialRecords } from "@/services/credential-parser";
 import { radii, spacing } from "@/theme/tokens";
 
-type RecognitionSource = "clipboard" | "scan";
-
-// 快速录入页：模拟剪贴板识别和截图 OCR，把识别结果带入新增密码表单确认。
+// 快速录入页：从剪贴板识别账号信息，并把识别结果带入新增密码表单确认。
 export default function QuickEntryScreen() {
   const { t } = useLanguage();
   const { colors } = useTheme();
-  const [source, setSource] = useState<RecognitionSource>("clipboard");
   const [rawText, setRawText] = useState("");
   const [records, setRecords] = useState<DetectedRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -25,24 +22,18 @@ export default function QuickEntryScreen() {
 
   const selectedRecord = useMemo(() => records.find((record) => record.id === selectedId) ?? records[0], [records, selectedId]);
 
-  const runRecognition = useCallback(
-    async (nextSource: RecognitionSource) => {
-      setLoading(true);
-      setSource(nextSource);
+  const runRecognition = useCallback(async () => {
+    setLoading(true);
 
-      const clipboardText = nextSource === "clipboard" ? await Clipboard.getStringAsync() : "";
-      // 扫描入口当前使用固定样本文本；后续接 OCR 时只需替换这里的 text 来源。
-      const text = nextSource === "clipboard" ? clipboardText : "";
-      const parsed = parseCredentialRecords(text);
+    const text = await Clipboard.getStringAsync();
+    const parsed = parseCredentialRecords(text);
 
-      setRawText(text);
-      setRecords(parsed);
-      setSelectedId(parsed[0]?.id ?? null);
-      setRecognized(true);
-      setLoading(false);
-    },
-    [],
-  );
+    setRawText(text);
+    setRecords(parsed);
+    setSelectedId(parsed[0]?.id ?? null);
+    setRecognized(true);
+    setLoading(false);
+  }, []);
 
   const recognizeEditedText = useCallback(() => {
     const parsed = parseCredentialRecords(rawText);
@@ -92,26 +83,14 @@ export default function QuickEntryScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <EntryCard
-          icon="clipboard"
           title={t("quickEntry.pasteText")}
           description={t("quickEntry.pasteDescription")}
           detail={t("quickEntry.pasteDetail")}
-          action={loading && source === "clipboard" ? t("quickEntry.recognizing") : t("quickEntry.pasteAction")}
+          action={loading ? t("quickEntry.recognizing") : t("quickEntry.pasteAction")}
           color={colors.primary}
           soft={colors.primarySoft}
           disabled={loading}
-          onPress={() => runRecognition("clipboard")}
-        />
-        <EntryCard
-          icon="camera"
-          title={t("quickEntry.scanTitle")}
-          description={t("quickEntry.scanDescription")}
-          detail={t("quickEntry.scanDetail")}
-          action={loading && source === "scan" ? t("quickEntry.recognizing") : t("quickEntry.scanAction")}
-          color={colors.green}
-          soft={colors.greenSoft}
-          disabled={loading}
-          onPress={() => router.push("/scan-screenshot" as never)}
+          onPress={runRecognition}
         />
 
         <View style={styles.orRow}>
@@ -225,7 +204,6 @@ export default function QuickEntryScreen() {
 }
 
 function EntryCard({
-  icon,
   title,
   description,
   detail,
@@ -235,7 +213,6 @@ function EntryCard({
   disabled,
   onPress,
 }: {
-  icon: "clipboard" | "camera";
   title: string;
   description: string;
   detail: string;
@@ -247,12 +224,12 @@ function EntryCard({
 }) {
   const { colors } = useTheme();
 
-  // 剪贴板和扫描入口视觉一致，只根据 icon/color/action 展示不同来源。
+  // 快速入口卡片保持稳定布局，避免 action 文案切换时影响列表高度。
   return (
     <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [pressed && styles.pressed, disabled && styles.disabled]}>
       <Card style={styles.entryCard}>
         <View style={[styles.entryIcon, { backgroundColor: soft }]}>
-          {icon === "clipboard" ? <ClipboardText size={26} color={color} weight="regular" /> : <Camera size={26} color={color} weight="regular" />}
+          <ClipboardText size={26} color={color} weight="regular" />
         </View>
         <View style={styles.entryText}>
           <Text style={[styles.entryTitle, { color: colors.text }]}>{title}</Text>

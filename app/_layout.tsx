@@ -18,7 +18,6 @@ function RootStack() {
         <Stack.Screen name="language" />
         <Stack.Screen name="theme" />
         <Stack.Screen name="quick-entry" />
-        <Stack.Screen name="scan-screenshot" />
         <Stack.Screen name="password-detail/[id]" />
       </Stack>
     </>
