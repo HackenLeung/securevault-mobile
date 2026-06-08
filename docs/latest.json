@@ -1,6 +1,6 @@
 {
   "version": "1.0.1",
-  "buildNumber": 2,
+  "buildNumber": 3,
   "apkUrl": "https://github.com/HackenLeung/securevault-mobile/releases/download/v1.0.1/app-release.apk",
   "releaseUrl": "https://github.com/HackenLeung/securevault-mobile/releases/tag/v1.0.1",
   "forceUpdate": false,
