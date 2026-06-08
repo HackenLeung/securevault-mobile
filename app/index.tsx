@@ -1,21 +1,45 @@
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { Fingerprint, ShieldChevron } from "phosphor-react-native";
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Fingerprint } from "phosphor-react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, PasswordField } from "@/components/ui";
 import { useLanguage } from "@/providers/language";
 import { useSecurity } from "@/providers/security";
 import { useTheme } from "@/providers/theme";
+import { hasMasterPassword } from "@/services/security";
 import { spacing } from "@/theme/tokens";
 
 export default function LockScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [checkingSetup, setCheckingSetup] = useState(true);
   const { t } = useLanguage();
   const { authenticateWithBiometrics, biometricAvailable, settings, verifyPassword } = useSecurity();
   const { colors } = useTheme();
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkMasterPassword = async () => {
+      const initialized = await hasMasterPassword();
+      if (!mounted) return;
+
+      if (!initialized) {
+        router.replace("/setup-master-password");
+        return;
+      }
+
+      setCheckingSetup(false);
+    };
+
+    checkMasterPassword();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const runImpactHaptic = async () => {
     if (Platform.OS === "web") return;
@@ -52,16 +76,19 @@ export default function LockScreen() {
 
   const biometricEnabled = settings.biometricUnlock && biometricAvailable;
 
+  if (checkingSetup) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
-        <View style={styles.brandBlock}>
-          <View style={styles.shield}>
-            <ShieldChevron size={58} color={colors.primary} weight="regular" />
-          </View>
-          <Text style={[styles.brand, { color: colors.textMuted }]}>SecureVault</Text>
-        </View>
-
         <Pressable style={[styles.fingerprint, !biometricEnabled && styles.disabled]} onPress={unlockWithBiometrics} disabled={!biometricEnabled}>
           <View style={[styles.fingerprintIcon, { backgroundColor: colors.primarySoft }]}>
             <Fingerprint size={46} color={biometricEnabled ? colors.primary : colors.textSubtle} weight="regular" />
@@ -93,23 +120,15 @@ export default function LockScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  loading: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+  },
   container: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 40,
-  },
-  brandBlock: {
-    alignItems: "center",
-    marginBottom: 64,
-  },
-  shield: {
-    alignItems: "center",
-    height: 112,
-    justifyContent: "center",
-    width: 112,
-  },
-  brand: {
-    fontSize: 13,
   },
   fingerprint: {
     alignItems: "center",

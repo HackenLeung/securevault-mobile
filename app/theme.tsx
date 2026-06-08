@@ -14,6 +14,12 @@ const options: Array<{
   descKey: "theme.lightDescription" | "theme.darkDescription" | "theme.systemDescription";
 }> = [
   {
+    key: "system",
+    icon: "system",
+    titleKey: "theme.system",
+    descKey: "theme.systemDescription",
+  },
+  {
     key: "light",
     icon: "light",
     titleKey: "theme.light",
@@ -24,12 +30,6 @@ const options: Array<{
     icon: "dark",
     titleKey: "theme.dark",
     descKey: "theme.darkDescription",
-  },
-  {
-    key: "system",
-    icon: "system",
-    titleKey: "theme.system",
-    descKey: "theme.systemDescription",
   },
 ];
 

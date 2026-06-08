@@ -64,7 +64,15 @@ type TranslationKey =
   | "settings.data.deleteForeverTitle"
   | "settings.data.deleteForeverMessage"
   | "settings.other.checkUpdates"
-  | "settings.other.changelog"
+  | "settings.update.checking"
+  | "settings.update.latestTitle"
+  | "settings.update.latestMessage"
+  | "settings.update.availableTitle"
+  | "settings.update.availableMessage"
+  | "settings.update.download"
+  | "settings.update.openFailed"
+  | "settings.update.failedTitle"
+  | "settings.update.failedMessage"
   | "lock.touchToUnlock"
   | "lock.useFingerprint"
   | "lock.orUseMasterPassword"
@@ -73,10 +81,23 @@ type TranslationKey =
   | "lock.forgotPassword"
   | "lock.wrongMasterPassword"
   | "lock.biometricUnavailable"
+  | "setupMasterPassword.title"
+  | "setupMasterPassword.subtitle"
+  | "setupMasterPassword.passwordPlaceholder"
+  | "setupMasterPassword.confirmPlaceholder"
+  | "setupMasterPassword.tip"
+  | "setupMasterPassword.action"
+  | "setupMasterPassword.passwordTooShort"
+  | "setupMasterPassword.passwordMismatch"
+  | "setupMasterPassword.createFailed"
   | "home.passwordsStored"
   | "home.title"
   | "home.searchPlaceholder"
   | "home.pinned"
+  | "home.emptyTitle"
+  | "home.emptySubtitle"
+  | "home.noResultsTitle"
+  | "home.noResultsSubtitle"
   | "common.hide"
   | "common.show"
   | "home.quickEntry"
@@ -230,7 +251,15 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.data.deleteForeverTitle": "永久删除",
     "settings.data.deleteForeverMessage": "删除后无法恢复，确定继续吗？",
     "settings.other.checkUpdates": "检查更新",
-    "settings.other.changelog": "更新日志",
+    "settings.update.checking": "检查中...",
+    "settings.update.latestTitle": "已是最新版本",
+    "settings.update.latestMessage": "当前版本已经是最新版本。",
+    "settings.update.availableTitle": "发现新版本",
+    "settings.update.availableMessage": "发现新版本 v{version}，是否前往下载？",
+    "settings.update.download": "去下载",
+    "settings.update.openFailed": "无法打开下载链接",
+    "settings.update.failedTitle": "检查失败",
+    "settings.update.failedMessage": "暂时无法获取更新信息，请稍后重试。",
     "lock.touchToUnlock": "点击解锁",
     "lock.useFingerprint": "使用指纹快速解锁",
     "lock.orUseMasterPassword": "或使用主密码",
@@ -239,10 +268,23 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "lock.forgotPassword": "忘记密码？",
     "lock.wrongMasterPassword": "主密码错误",
     "lock.biometricUnavailable": "生物识别不可用，请使用主密码",
+    "setupMasterPassword.title": "设置主密码",
+    "setupMasterPassword.subtitle": "这是进入密码库的第一道保护，请设置一个只有你知道的主密码。",
+    "setupMasterPassword.passwordPlaceholder": "请输入主密码",
+    "setupMasterPassword.confirmPlaceholder": "再次输入主密码",
+    "setupMasterPassword.tip": "主密码至少 4 位。当前版本会保存加盐哈希，不会明文保存主密码。",
+    "setupMasterPassword.action": "完成设置",
+    "setupMasterPassword.passwordTooShort": "主密码至少需要 4 位",
+    "setupMasterPassword.passwordMismatch": "两次输入的主密码不一致",
+    "setupMasterPassword.createFailed": "主密码设置失败，请稍后重试",
     "home.passwordsStored": "条密码已保存",
     "home.title": "密码管理器",
-    "home.searchPlaceholder": "搜索密码...",
+    "home.searchPlaceholder": "搜索",
     "home.pinned": "收藏置顶",
+    "home.emptyTitle": "还没有保存密码",
+    "home.emptySubtitle": "点击右上角 + 添加第一条密码",
+    "home.noResultsTitle": "没有找到匹配结果",
+    "home.noResultsSubtitle": "换个关键词或分类试试",
     "common.hide": "收起",
     "common.show": "展开",
     "home.quickEntry": "快速录入",
@@ -395,7 +437,15 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.data.deleteForeverTitle": "Delete permanently",
     "settings.data.deleteForeverMessage": "This cannot be undone. Continue?",
     "settings.other.checkUpdates": "Check for Updates",
-    "settings.other.changelog": "Changelog",
+    "settings.update.checking": "Checking...",
+    "settings.update.latestTitle": "You're up to date",
+    "settings.update.latestMessage": "The current version is already the latest.",
+    "settings.update.availableTitle": "Update available",
+    "settings.update.availableMessage": "Version v{version} is available. Download it now?",
+    "settings.update.download": "Download",
+    "settings.update.openFailed": "Unable to open the download link",
+    "settings.update.failedTitle": "Check failed",
+    "settings.update.failedMessage": "Unable to fetch update information. Try again later.",
     "lock.touchToUnlock": "Touch to unlock",
     "lock.useFingerprint": "Use your fingerprint to quickly unlock",
     "lock.orUseMasterPassword": "or use master password",
@@ -404,10 +454,23 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "lock.forgotPassword": "Forgot password?",
     "lock.wrongMasterPassword": "Wrong master password",
     "lock.biometricUnavailable": "Biometric unlock is unavailable. Use your master password.",
+    "setupMasterPassword.title": "Set Master Password",
+    "setupMasterPassword.subtitle": "This protects access to your vault. Choose a master password only you know.",
+    "setupMasterPassword.passwordPlaceholder": "Enter master password",
+    "setupMasterPassword.confirmPlaceholder": "Confirm master password",
+    "setupMasterPassword.tip": "Use at least 4 characters. This version stores a salted hash, not the plain password.",
+    "setupMasterPassword.action": "Finish Setup",
+    "setupMasterPassword.passwordTooShort": "Master password must be at least 4 characters",
+    "setupMasterPassword.passwordMismatch": "The master passwords do not match",
+    "setupMasterPassword.createFailed": "Failed to set master password. Try again later.",
     "home.passwordsStored": "passwords stored",
     "home.title": "Password Manager",
-    "home.searchPlaceholder": "Search passwords...",
+    "home.searchPlaceholder": "Search",
     "home.pinned": "Pinned",
+    "home.emptyTitle": "No passwords yet",
+    "home.emptySubtitle": "Tap + in the top right to add your first password",
+    "home.noResultsTitle": "No matching results",
+    "home.noResultsSubtitle": "Try another keyword or category",
     "common.hide": "Hide",
     "common.show": "Show",
     "home.quickEntry": "Quick Entry",
@@ -510,7 +573,7 @@ type LanguageContextValue = {
 };
 
 const defaultLanguageContext: LanguageContextValue = {
-  languagePreference: "zh",
+  languagePreference: "system",
   language: "zh",
   setLanguagePreference: () => {},
   t: (key) => translations.zh[key],
@@ -526,7 +589,7 @@ const resolveSystemLanguage = (): SupportedLanguage => {
 
 // 语言 Provider：保存语言偏好，并提供类型安全的 t(key) 翻译函数。
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [languagePreference, setLanguagePreference] = useState<LanguagePreference>("zh");
+  const [languagePreference, setLanguagePreference] = useState<LanguagePreference>("system");
 
   const value = useMemo<LanguageContextValue>(() => {
     // preference 是用户选择，language 是最终生效语言，system 会在这里解析。

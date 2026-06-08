@@ -24,72 +24,8 @@ export const categoryMeta: Record<VaultCategory, { label: string; color: string;
   wifi: { label: "WiFi", color: colors.green, soft: colors.greenSoft },
 };
 
-// 演示用密码数据，当前保存在内存中；刷新应用会恢复到这里的初始列表。
-export const vaultItems: VaultItem[] = [
-  {
-    id: "taobao",
-    title: "Taobao",
-    category: "website",
-    username: "13800138000",
-    password: "xK#9mP$2wLq&4Rn",
-    url: "https://taobao.com",
-    favorite: true,
-    passwordHistory: [
-      { label: "current", date: "Today" },
-      { label: "previous", date: "Apr 10" },
-      { label: "older", date: "Mar 2" },
-    ],
-    updatedAt: "Today",
-  },
-  {
-    id: "wechat",
-    title: "WeChat",
-    category: "app",
-    username: "zhangsan",
-    password: "Mima#2026!",
-    favorite: true,
-    passwordHistory: [
-      { label: "current", date: "Yesterday" },
-      { label: "previous", date: "Apr 10" },
-    ],
-    updatedAt: "Yesterday",
-  },
-  {
-    id: "github",
-    title: "GitHub",
-    category: "website",
-    username: "zhangsan.dev",
-    password: "Gh#4Rn92Lq",
-    url: "https://github.com",
-    favorite: true,
-    updatedAt: "Apr 30",
-  },
-  {
-    id: "bilibili",
-    title: "Bilibili",
-    category: "website",
-    username: "user@example.com",
-    password: "Xy#9kL2m",
-    url: "https://bilibili.com",
-    updatedAt: "Apr 18",
-  },
-  {
-    id: "wifi",
-    title: "Home WiFi 5G",
-    category: "wifi",
-    username: "WPA2",
-    password: "Home-5G-2026",
-    updatedAt: "Apr 12",
-  },
-  {
-    id: "discord",
-    title: "Discord",
-    category: "app",
-    username: "zhangsan#1234",
-    password: "Dc@Vault2026",
-    updatedAt: "Mar 28",
-  },
-];
+// 当前密码库默认从空数据开始；新增项仍保存在内存中，刷新应用会恢复为空。
+export const vaultItems: VaultItem[] = [];
 
 export const addVaultItem = (item: VaultItem) => {
   // 新增项插到顶部，让刚保存的记录能立即在首页列表和详情页看到。

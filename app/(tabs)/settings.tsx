@@ -9,13 +9,13 @@ import {
   Fingerprint,
   Globe,
   Key,
-  ListBullets,
   Moon,
   Sliders,
   Trash,
 } from "phosphor-react-native";
 import { useState } from "react";
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Constants from "expo-constants";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Card, PasswordField, SectionLabel } from "@/components/ui";
 import {
@@ -26,6 +26,7 @@ import {
 import { useLanguage } from "@/providers/language";
 import { AutoLockMinutes, useSecurity } from "@/providers/security";
 import { ThemePreference, useTheme } from "@/providers/theme";
+import { checkForUpdate } from "@/services/update";
 import { radii, spacing } from "@/theme/tokens";
 
 const settingIcons = {
@@ -38,7 +39,6 @@ const settingIcons = {
   sliders: Sliders,
   "trash-2": Trash,
   "refresh-cw": ArrowsClockwise,
-  list: ListBullets,
 } as const;
 
 type SettingItem = {
@@ -86,9 +86,12 @@ export default function SettingsScreen() {
   const [nextPassword, setNextPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [recycleBinVisible, setRecycleBinVisible] = useState(false);
   const [, setRecycleVersion] = useState(0);
   const deletedItems = getDeletedVaultItems();
+  const currentVersion = Constants.expoConfig?.version ?? "1.0.0";
+  const currentBuildNumber = Constants.expoConfig?.android?.versionCode ?? 1;
 
   const getAutoLockValue = (minutes: AutoLockMinutes) => {
     // 自动锁定时长用枚举值存储，展示时再映射到当前语言文案。
@@ -174,6 +177,46 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const handleCheckUpdates = async () => {
+    if (checkingUpdate) return;
+
+    setCheckingUpdate(true);
+
+    try {
+      const result = await checkForUpdate(currentVersion, currentBuildNumber);
+
+      if (result.status === "current") {
+        Alert.alert(t("settings.update.latestTitle"), t("settings.update.latestMessage"));
+        return;
+      }
+
+      const downloadUrl = result.manifest.apkUrl ?? result.manifest.releaseUrl;
+      const changelog = result.manifest.changelog?.length ? `\n\n${result.manifest.changelog.map((item) => `- ${item}`).join("\n")}` : "";
+
+      Alert.alert(
+        t("settings.update.availableTitle"),
+        t("settings.update.availableMessage").replace("{version}", result.manifest.version) + changelog,
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          ...(downloadUrl
+            ? [
+                {
+                  text: t("settings.update.download"),
+                  onPress: () => {
+                    Linking.openURL(downloadUrl).catch(() => Alert.alert(t("settings.update.openFailed")));
+                  },
+                },
+              ]
+            : []),
+        ],
+      );
+    } catch {
+      Alert.alert(t("settings.update.failedTitle"), t("settings.update.failedMessage"));
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
   const groups: SettingGroup[] = [
     // 通过数据驱动渲染设置行，减少每个分组重复写卡片/分割线结构。
     {
@@ -256,8 +299,14 @@ export default function SettingsScreen() {
     {
       title: t("settings.group.other"),
       items: [
-        { icon: "refresh-cw", label: t("settings.other.checkUpdates"), value: "v1.0.0", color: colors.warning, soft: colors.warningSoft },
-        { icon: "list", label: t("settings.other.changelog"), color: colors.warning, soft: colors.warningSoft },
+        {
+          icon: "refresh-cw",
+          label: checkingUpdate ? t("settings.update.checking") : t("settings.other.checkUpdates"),
+          value: currentVersion,
+          color: colors.warning,
+          soft: colors.warningSoft,
+          onPress: handleCheckUpdates,
+        },
       ],
     },
   ];

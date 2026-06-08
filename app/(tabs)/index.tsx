@@ -1,6 +1,6 @@
 import * as Clipboard from "expo-clipboard";
 import { router, useFocusEffect } from "expo-router";
-import { Check, Copy, Gear, Lightning, MagnifyingGlass, Plus, Star } from "phosphor-react-native";
+import { Check, Copy, Gear, Key, Lightning, MagnifyingGlass, Plus, Star } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -17,7 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Card } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { getVisibleVaultItems, maskAccount, VaultCategory, VaultItem } from "@/data/vault";
 import { useLanguage } from "@/providers/language";
 import { useTheme } from "@/providers/theme";
@@ -77,8 +77,10 @@ export default function HomeScreen() {
     });
   }, [category, dataVersion, query]);
 
-  const pinned = getVisibleVaultItems().filter((item) => item.favorite);
+  const visibleItems = getVisibleVaultItems();
+  const pinned = visibleItems.filter((item) => item.favorite);
   const hasPinned = pinned.length > 0;
+  const isVaultEmpty = visibleItems.length === 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -270,6 +272,22 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.listScroller}
           contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <View style={[styles.emptyIcon, { backgroundColor: colors.primarySoft }]}>
+                <Key size={28} color={colors.primary} weight="regular" />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{isVaultEmpty ? t("home.emptyTitle") : t("home.noResultsTitle")}</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSubtle }]}>
+                {isVaultEmpty ? t("home.emptySubtitle") : t("home.noResultsSubtitle")}
+              </Text>
+              {isVaultEmpty ? (
+                <Button onPress={() => navigateHeaderAction("/add-password")} style={styles.emptyButton}>
+                  {t("home.addPassword")}
+                </Button>
+              ) : null}
+            </View>
+          }
           renderItem={({ item }) => {
             const accent = getAccent(item);
             const copied = copiedItemId === item.id;
@@ -419,6 +437,34 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   list: { gap: spacing.sm, paddingBottom: spacing.xxxl },
+  emptyWrap: {
+    alignItems: "center",
+    paddingHorizontal: spacing.xl,
+    paddingTop: 96,
+  },
+  emptyIcon: {
+    alignItems: "center",
+    borderRadius: radii.lg,
+    height: 64,
+    justifyContent: "center",
+    marginBottom: spacing.xl,
+    width: 64,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    marginBottom: spacing.sm,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: spacing.xl,
+    textAlign: "center",
+  },
+  emptyButton: {
+    minWidth: 132,
+    paddingHorizontal: spacing.xl,
+  },
   listAnimation: {
     opacity: 1,
     transform: [{ translateY: 0 }],

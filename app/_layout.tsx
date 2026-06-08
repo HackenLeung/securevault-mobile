@@ -12,6 +12,7 @@ function RootStack() {
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="setup-master-password" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add-password" />
         <Stack.Screen name="generator-defaults" />

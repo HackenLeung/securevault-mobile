@@ -12,7 +12,7 @@ type ThemeContextValue = {
 };
 
 const defaultThemeContext: ThemeContextValue = {
-  themePreference: "light",
+  themePreference: "system",
   theme: "light",
   colors: lightColors,
   setThemePreference: () => {},
@@ -23,7 +23,7 @@ const ThemeContext = createContext<ThemeContextValue>(defaultThemeContext);
 // 主题 Provider：记录用户偏好，并在 system 模式下实时跟随系统浅/深色。
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme();
-  const [themePreference, setThemePreference] = useState<ThemePreference>("light");
+  const [themePreference, setThemePreference] = useState<ThemePreference>("system");
 
   const value = useMemo<ThemeContextValue>(() => {
     // preference 是用户选择，theme 是最终生效主题，二者分开便于设置页展示“跟随系统”。

@@ -12,7 +12,6 @@ export type EncryptionEnvelope = {
 };
 
 const MASTER_PASSWORD_KEY = "securevault.masterPassword.v1";
-const DEFAULT_MASTER_PASSWORD = "demo";
 
 type StoredMasterPassword = {
   version: 1;
@@ -58,22 +57,27 @@ const createPasswordRecord = async (password: string): Promise<StoredMasterPassw
 
 const readPasswordRecord = async () => {
   const stored = await readStoredValue(MASTER_PASSWORD_KEY);
-
-  if (!stored) {
-    // 首次启动初始化 demo 主密码，方便演示；正式产品应引导用户设置主密码。
-    const initial = await createPasswordRecord(DEFAULT_MASTER_PASSWORD);
-    await writeStoredValue(MASTER_PASSWORD_KEY, JSON.stringify(initial));
-    return initial;
-  }
+  if (!stored) return null;
 
   try {
     return JSON.parse(stored) as StoredMasterPassword;
   } catch {
-    // 存储内容损坏时重置为 demo，保证应用仍可进入。
-    const fallback = await createPasswordRecord(DEFAULT_MASTER_PASSWORD);
-    await writeStoredValue(MASTER_PASSWORD_KEY, JSON.stringify(fallback));
-    return fallback;
+    return null;
   }
+};
+
+export const hasMasterPassword = async () => {
+  const record = await readPasswordRecord();
+  return Boolean(record?.salt && record.hash);
+};
+
+export const createMasterPassword = async (password: string) => {
+  const normalized = password.trim();
+  if (normalized.length < 4) return false;
+
+  const record = await createPasswordRecord(normalized);
+  await writeStoredValue(MASTER_PASSWORD_KEY, JSON.stringify(record));
+  return true;
 };
 
 export const verifyMasterPassword = async (password: string) => {
@@ -81,6 +85,8 @@ export const verifyMasterPassword = async (password: string) => {
   if (normalized.length < 4) return false;
 
   const record = await readPasswordRecord();
+  if (!record) return false;
+
   const hash = await hashPassword(normalized, record.salt);
 
   // 比较 hash 而不是明文密码，避免主密码直接落盘。

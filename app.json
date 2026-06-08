@@ -27,6 +27,7 @@
       },
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [],
+      "versionCode": 1,
       "package": "com.anonymous.securevault"
     },
     "web": {
