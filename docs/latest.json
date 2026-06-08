@@ -1,13 +1,10 @@
 {
-  "version": "1.0.0",
-  "buildNumber": 1,
-  "apkUrl": "https://github.com/HackenLeung/securevault-mobile/releases/download/v1.0.0/app-release.apk",
-  "releaseUrl": "https://github.com/HackenLeung/securevault-mobile/releases/tag/v1.0.0",
+  "version": "1.0.1",
+  "buildNumber": 2,
+  "apkUrl": "https://github.com/HackenLeung/securevault-mobile/releases/download/v1.0.1/app-release.apk",
+  "releaseUrl": "https://github.com/HackenLeung/securevault-mobile/releases/tag/v1.0.1",
   "forceUpdate": false,
   "changelog": [
-    "初始化版本",
-    "支持主密码解锁",
-    "支持新增、查看、复制密码",
-    "支持检查更新"
+    "更新弹窗UI设计，提升用户体验。"
   ]
 }

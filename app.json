@@ -3,7 +3,7 @@
     "name": "SecureVault",
     "slug": "securevault",
     "scheme": "securevault",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -27,7 +27,7 @@
       },
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [],
-      "versionCode": 1,
+      "versionCode": 2,
       "package": "com.anonymous.securevault"
     },
     "web": {

@@ -18,6 +18,7 @@ type TranslationKey =
   | "common.back"
   | "common.today"
   | "common.copied"
+  | "common.gotIt"
   | "settings.title"
   | "settings.group.appearance"
   | "settings.group.security"
@@ -205,6 +206,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "common.back": "返回",
     "common.today": "今天",
     "common.copied": "已复制",
+    "common.gotIt": "知道了",
     "settings.title": "设置",
     "settings.group.appearance": "外观",
     "settings.group.security": "安全",
@@ -391,6 +393,7 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "common.back": "Back",
     "common.today": "Today",
     "common.copied": "Copied",
+    "common.gotIt": "Got it",
     "settings.title": "Settings",
     "settings.group.appearance": "Appearance",
     "settings.group.security": "Security",

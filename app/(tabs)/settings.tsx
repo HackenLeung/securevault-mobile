@@ -58,6 +58,16 @@ type SettingGroup = {
   items: SettingItem[];
 };
 
+type UpdateModalState = {
+  visible: boolean;
+  status: "latest" | "available" | "failed";
+  title: string;
+  message: string;
+  version?: string;
+  changelog: string[];
+  downloadUrl?: string;
+};
+
 const themeValueKey: Record<ThemePreference, "theme.currentValue.system" | "theme.currentValue.light" | "theme.currentValue.dark"> = {
   system: "theme.currentValue.system",
   light: "theme.currentValue.light",
@@ -67,6 +77,14 @@ const themeValueKey: Record<ThemePreference, "theme.currentValue.system" | "them
 const autoLockOptions: AutoLockMinutes[] = [1, 5, 15, 30, 0];
 
 const getDangerSoft = (isDark: boolean) => (isDark ? "#3C1D24" : "#FCEBEB");
+
+const initialUpdateModal: UpdateModalState = {
+  visible: false,
+  status: "latest",
+  title: "",
+  message: "",
+  changelog: [],
+};
 
 // 设置页按业务分组生成列表，真实可交互的安全项通过 SecurityProvider 落地。
 export default function SettingsScreen() {
@@ -87,6 +105,7 @@ export default function SettingsScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateModal, setUpdateModal] = useState<UpdateModalState>(initialUpdateModal);
   const [recycleBinVisible, setRecycleBinVisible] = useState(false);
   const [, setRecycleVersion] = useState(0);
   const deletedItems = getDeletedVaultItems();
@@ -177,6 +196,24 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const closeUpdateModal = () => {
+    setUpdateModal(initialUpdateModal);
+  };
+
+  const openUpdateDownload = () => {
+    if (!updateModal.downloadUrl) return;
+
+    Linking.openURL(updateModal.downloadUrl).catch(() =>
+      setUpdateModal({
+        visible: true,
+        status: "failed",
+        title: t("settings.update.failedTitle"),
+        message: t("settings.update.openFailed"),
+        changelog: [],
+      }),
+    );
+  };
+
   const handleCheckUpdates = async () => {
     if (checkingUpdate) return;
 
@@ -186,32 +223,35 @@ export default function SettingsScreen() {
       const result = await checkForUpdate(currentVersion, currentBuildNumber);
 
       if (result.status === "current") {
-        Alert.alert(t("settings.update.latestTitle"), t("settings.update.latestMessage"));
+        setUpdateModal({
+          visible: true,
+          status: "latest",
+          title: t("settings.update.latestTitle"),
+          message: t("settings.update.latestMessage"),
+          version: currentVersion,
+          changelog: [],
+        });
         return;
       }
 
       const downloadUrl = result.manifest.apkUrl ?? result.manifest.releaseUrl;
-      const changelog = result.manifest.changelog?.length ? `\n\n${result.manifest.changelog.map((item) => `- ${item}`).join("\n")}` : "";
-
-      Alert.alert(
-        t("settings.update.availableTitle"),
-        t("settings.update.availableMessage").replace("{version}", result.manifest.version) + changelog,
-        [
-          { text: t("common.cancel"), style: "cancel" },
-          ...(downloadUrl
-            ? [
-                {
-                  text: t("settings.update.download"),
-                  onPress: () => {
-                    Linking.openURL(downloadUrl).catch(() => Alert.alert(t("settings.update.openFailed")));
-                  },
-                },
-              ]
-            : []),
-        ],
-      );
+      setUpdateModal({
+        visible: true,
+        status: "available",
+        title: t("settings.update.availableTitle"),
+        message: t("settings.update.availableMessage").replace("{version}", result.manifest.version),
+        version: result.manifest.version,
+        changelog: result.manifest.changelog ?? [],
+        downloadUrl,
+      });
     } catch {
-      Alert.alert(t("settings.update.failedTitle"), t("settings.update.failedMessage"));
+      setUpdateModal({
+        visible: true,
+        status: "failed",
+        title: t("settings.update.failedTitle"),
+        message: t("settings.update.failedMessage"),
+        changelog: [],
+      });
     } finally {
       setCheckingUpdate(false);
     }
@@ -436,6 +476,44 @@ export default function SettingsScreen() {
           </View>
         </Modal>
 
+        <Modal animationType="fade" transparent visible={updateModal.visible} onRequestClose={closeUpdateModal}>
+          <View style={styles.modalLayer}>
+            <Pressable style={styles.modalBackdrop} onPress={closeUpdateModal} />
+            <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.updateHeader}>
+                <View style={[styles.updateIcon, { backgroundColor: updateModal.status === "failed" ? getDangerSoft(theme === "dark") : colors.warningSoft }]}>
+                  <ArrowsClockwise size={20} color={updateModal.status === "failed" ? colors.danger : colors.warning} weight="bold" />
+                </View>
+                <View style={styles.updateTitleWrap}>
+                  <Text style={[styles.modalTitle, styles.updateTitle, { color: colors.text }]}>{updateModal.title}</Text>
+                  {updateModal.version ? <Text style={[styles.updateVersion, { color: colors.textSubtle }]}>v{updateModal.version}</Text> : null}
+                </View>
+              </View>
+              <Text style={[styles.updateMessage, { color: colors.textMuted }]}>{updateModal.message}</Text>
+              {updateModal.changelog.length ? (
+                <View style={[styles.changelogBox, { backgroundColor: colors.surfaceMuted }]}>
+                  {updateModal.changelog.map((item) => (
+                    <View key={item} style={styles.changelogRow}>
+                      <View style={[styles.changelogDot, { backgroundColor: colors.warning }]} />
+                      <Text style={[styles.changelogText, { color: colors.text }]}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              <View style={styles.modalActions}>
+                <Button variant={updateModal.status === "available" ? "secondary" : "primary"} onPress={closeUpdateModal} style={styles.modalButton}>
+                  {updateModal.status === "available" ? t("common.cancel") : t("common.gotIt")}
+                </Button>
+                {updateModal.status === "available" && updateModal.downloadUrl ? (
+                  <Button onPress={openUpdateDownload} style={styles.modalButton}>
+                    {t("settings.update.download")}
+                  </Button>
+                ) : null}
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         <Modal animationType="fade" transparent visible={recycleBinVisible} onRequestClose={() => setRecycleBinVisible(false)}>
           <View style={styles.modalLayer}>
             <Pressable style={styles.modalBackdrop} onPress={() => setRecycleBinVisible(false)} />
@@ -561,6 +639,57 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
+  },
+  updateHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    marginBottom: spacing.md,
+  },
+  updateIcon: {
+    alignItems: "center",
+    borderRadius: 12,
+    height: 40,
+    justifyContent: "center",
+    marginRight: spacing.md,
+    width: 40,
+  },
+  updateTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  updateTitle: {
+    marginBottom: 2,
+  },
+  updateVersion: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  updateMessage: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  changelogBox: {
+    borderRadius: radii.md,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+  },
+  changelogRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  changelogDot: {
+    borderRadius: 3,
+    height: 6,
+    marginTop: 7,
+    width: 6,
+  },
+  changelogText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 20,
   },
   optionList: {
     gap: spacing.sm,
