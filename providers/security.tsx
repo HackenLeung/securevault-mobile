@@ -31,7 +31,7 @@ const SCREEN_CAPTURE_KEY = "securevault.screenshotProtection";
 const defaultSettings: SecuritySettings = {
   biometricUnlock: true,
   autoLockMinutes: 5,
-  screenshotProtection: false,
+  screenshotProtection: true,
 };
 
 const defaultSecurityContext: SecurityContextValue = {

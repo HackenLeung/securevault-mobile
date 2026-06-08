@@ -486,12 +486,19 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.updateTitleWrap}>
                   <Text style={[styles.modalTitle, styles.updateTitle, { color: colors.text }]}>{updateModal.title}</Text>
-                  {updateModal.version ? <Text style={[styles.updateVersion, { color: colors.textSubtle }]}>v{updateModal.version}</Text> : null}
+                  {updateModal.version ? (
+                    <View style={[styles.updateVersionPill, { backgroundColor: updateModal.status === "available" ? colors.warningSoft : colors.surfaceMuted }]}>
+                      <Text style={[styles.updateVersion, { color: updateModal.status === "available" ? colors.warning : colors.textSubtle }]}>
+                        {updateModal.status === "available" ? t("settings.update.newVersion").replace("{version}", updateModal.version) : `v${updateModal.version}`}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
               <Text style={[styles.updateMessage, { color: colors.textMuted }]}>{updateModal.message}</Text>
               {updateModal.changelog.length ? (
                 <View style={[styles.changelogBox, { backgroundColor: colors.surfaceMuted }]}>
+                  <Text style={[styles.changelogTitle, { color: colors.text }]}>{t("settings.update.changelogTitle")}</Text>
                   {updateModal.changelog.map((item) => (
                     <View key={item} style={styles.changelogRow}>
                       <View style={[styles.changelogDot, { backgroundColor: colors.warning }]} />
@@ -660,9 +667,16 @@ const styles = StyleSheet.create({
   updateTitle: {
     marginBottom: 2,
   },
+  updateVersionPill: {
+    alignSelf: "flex-start",
+    borderRadius: radii.sm,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
   updateVersion: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "900",
   },
   updateMessage: {
     fontSize: 13,
@@ -673,6 +687,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.lg,
     padding: spacing.md,
+  },
+  changelogTitle: {
+    fontSize: 13,
+    fontWeight: "900",
+    marginBottom: 2,
   },
   changelogRow: {
     alignItems: "flex-start",

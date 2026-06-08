@@ -70,6 +70,8 @@ type TranslationKey =
   | "settings.update.latestMessage"
   | "settings.update.availableTitle"
   | "settings.update.availableMessage"
+  | "settings.update.newVersion"
+  | "settings.update.changelogTitle"
   | "settings.update.download"
   | "settings.update.openFailed"
   | "settings.update.failedTitle"
@@ -258,6 +260,8 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.update.latestMessage": "当前版本已经是最新版本。",
     "settings.update.availableTitle": "发现新版本",
     "settings.update.availableMessage": "发现新版本 v{version}，是否前往下载？",
+    "settings.update.newVersion": "新版本 v{version}",
+    "settings.update.changelogTitle": "更新内容",
     "settings.update.download": "去下载",
     "settings.update.openFailed": "无法打开下载链接",
     "settings.update.failedTitle": "检查失败",
@@ -445,6 +449,8 @@ const translations: Record<SupportedLanguage, Record<TranslationKey, string>> = 
     "settings.update.latestMessage": "The current version is already the latest.",
     "settings.update.availableTitle": "Update available",
     "settings.update.availableMessage": "Version v{version} is available. Download it now?",
+    "settings.update.newVersion": "New version v{version}",
+    "settings.update.changelogTitle": "What's new",
     "settings.update.download": "Download",
     "settings.update.openFailed": "Unable to open the download link",
     "settings.update.failedTitle": "Check failed",
