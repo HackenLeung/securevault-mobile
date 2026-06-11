@@ -21,7 +21,7 @@ import { Button, Card } from "@/components/ui";
 import { getVisibleVaultItems, maskAccount, VaultCategory, VaultItem } from "@/data/vault";
 import { useLanguage } from "@/providers/language";
 import { useTheme } from "@/providers/theme";
-import { colors as tokenColors, radii, spacing } from "@/theme/tokens";
+import { radii, spacing } from "@/theme/tokens";
 
 const tabs: Array<"all" | VaultCategory> = ["all", "website", "app", "wifi"];
 
@@ -44,6 +44,27 @@ export default function HomeScreen() {
   const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDark = theme === "dark";
+  const topControlColors = useMemo(
+    () =>
+      isDark
+        ? {
+            searchBg: "#1C1C1E",
+            searchBorder: "transparent",
+            segmentBg: "#1C1C1E",
+            segmentSelected: "#636366",
+            segmentText: "#AEAEB2",
+            segmentSelectedText: "#FFFFFF",
+          }
+        : {
+            searchBg: "#F2F2F7",
+            searchBorder: "transparent",
+            segmentBg: "#E9E9EB",
+            segmentSelected: "#FFFFFF",
+            segmentText: "#6B7280",
+            segmentSelectedText: "#111827",
+          },
+    [isDark],
+  );
 
   const getAccent = useCallback(
     (item: VaultItem) => {
@@ -174,7 +195,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.search, { backgroundColor: topControlColors.searchBg, borderColor: topControlColors.searchBorder }]}>
             <MagnifyingGlass size={17} color={colors.textSubtle} weight="regular" />
             <TextInput
               value={query}
@@ -232,13 +253,17 @@ export default function HomeScreen() {
             </>
           ) : null}
 
-          <View style={[styles.tabs, !hasPinned && styles.tabsAfterSearch]} onLayout={(event) => setTabsWidth(event.nativeEvent.layout.width)}>
+          <View
+            style={[styles.tabs, { backgroundColor: topControlColors.segmentBg }, !hasPinned && styles.tabsAfterSearch]}
+            onLayout={(event) => setTabsWidth(event.nativeEvent.layout.width)}
+          >
             {tabsWidth > 0 ? (
               <Animated.View
                 pointerEvents="none"
                 style={[
                   styles.tabIndicator,
                   {
+                    backgroundColor: topControlColors.segmentSelected,
                     width: tabsWidth / tabs.length - 4,
                     transform: [{ translateX: tabIndicatorAnim }],
                   },
@@ -249,7 +274,7 @@ export default function HomeScreen() {
               const active = tab === category;
               return (
                 <Pressable key={tab} onPress={() => selectCategory(tab)} style={styles.tab}>
-                  <Text style={[styles.tabText, active && styles.activeTabText]}>
+                  <Text style={[styles.tabText, { color: active ? topControlColors.segmentSelectedText : topControlColors.segmentText }]}>
                     {tab === "all"
                       ? t("category.all")
                       : t(
@@ -362,11 +387,11 @@ const styles = StyleSheet.create({
   },
   search: {
     alignItems: "center",
-    borderRadius: radii.md,
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     gap: spacing.sm,
-    height: 40,
+    height: 36,
     paddingHorizontal: spacing.lg,
   },
   searchInput: { flex: 1, fontSize: 13, fontWeight: "600", paddingVertical: 0 },
@@ -405,8 +430,7 @@ const styles = StyleSheet.create({
   initialTextSolid: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
   pinnedText: { flex: 1 },
   tabs: {
-    backgroundColor: tokenColors.surfaceMuted,
-    borderRadius: radii.md,
+    borderRadius: 10,
     flexDirection: "row",
     padding: 2,
     position: "relative",
@@ -415,8 +439,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   tabIndicator: {
-    backgroundColor: tokenColors.primary,
-    borderRadius: 10,
+    borderRadius: 8,
     bottom: 2,
     left: 2,
     position: "absolute",
@@ -424,14 +447,13 @@ const styles = StyleSheet.create({
   },
   tab: {
     alignItems: "center",
-    borderRadius: 10,
+    borderRadius: 8,
     flex: 1,
-    height: 38,
+    height: 32,
     justifyContent: "center",
     zIndex: 1,
   },
-  tabText: { color: tokenColors.textMuted, fontSize: 12, fontWeight: "700" },
-  activeTabText: { color: "#FFFFFF" },
+  tabText: { fontSize: 12, fontWeight: "700" },
   listScroller: {
     flex: 1,
     marginTop: spacing.md,

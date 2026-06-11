@@ -39,6 +39,7 @@ const defaultCharacterState: CharacterState = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+type SliderPosition = { pageX?: number; locationX?: number };
 
 // 字符类型文案复用新增密码页的翻译 key，保证两个生成器界面口径一致。
 const getCharacterLabelKey = (type: CharacterType) => {
@@ -105,11 +106,16 @@ export default function GeneratorDefaultsScreen() {
     [measureSlider],
   );
 
-  const setLengthFromPosition = useCallback((event: GestureResponderEvent, commitPreview = false, metrics = sliderMetricsRef.current) => {
+  const setLengthFromPosition = useCallback((position: SliderPosition, commitPreview = false, metrics = sliderMetricsRef.current) => {
     if (metrics.width <= 0) return;
 
     // 用页面坐标减去滑块容器起点，避免 locationX 因命中填充条/圆点而切换参考系。
-    const offsetX = metrics.pageX > 0 ? event.nativeEvent.pageX - metrics.pageX : event.nativeEvent.locationX;
+    const offsetX =
+      metrics.pageX > 0 && typeof position.pageX === "number"
+        ? position.pageX - metrics.pageX
+        : position.locationX;
+    if (typeof offsetX !== "number") return;
+
     const nextProgress = clamp(offsetX / metrics.width, 0, 1);
     const nextLength = Math.round(MIN_LENGTH + nextProgress * (MAX_LENGTH - MIN_LENGTH));
     setPasswordLength((current) => (current === nextLength ? current : nextLength));
@@ -120,20 +126,40 @@ export default function GeneratorDefaultsScreen() {
 
   const startSliding = useCallback(
     (event: GestureResponderEvent) => {
+      const position = {
+        pageX: event.nativeEvent?.pageX,
+        locationX: event.nativeEvent?.locationX,
+      };
       setIsSliding(true);
       sliderTouchRef.current?.measure((_, __, width, ___, pageX) => {
         const metrics = { pageX, width };
         sliderMetricsRef.current = metrics;
-        setLengthFromPosition(event, false, metrics);
+        setLengthFromPosition(position, false, metrics);
       });
     },
     [setLengthFromPosition],
   );
 
   const finishSliding = useCallback(
-    (event: GestureResponderEvent) => {
-      setLengthFromPosition(event, true);
+    (event?: GestureResponderEvent) => {
+      setLengthFromPosition(
+        {
+          pageX: event?.nativeEvent?.pageX,
+          locationX: event?.nativeEvent?.locationX,
+        },
+        true,
+      );
       setIsSliding(false);
+    },
+    [setLengthFromPosition],
+  );
+
+  const moveSlider = useCallback(
+    (event: GestureResponderEvent) => {
+      setLengthFromPosition({
+        pageX: event.nativeEvent?.pageX,
+        locationX: event.nativeEvent?.locationX,
+      });
     },
     [setLengthFromPosition],
   );
@@ -193,7 +219,7 @@ export default function GeneratorDefaultsScreen() {
               onResponderRelease={finishSliding}
               onResponderTerminate={finishSliding}
               onResponderTerminationRequest={() => false}
-              onResponderMove={setLengthFromPosition}
+              onResponderMove={moveSlider}
               onStartShouldSetResponder={() => true}
               style={styles.sliderTouchArea}
             >

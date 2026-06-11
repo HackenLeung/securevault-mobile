@@ -2,12 +2,13 @@ import * as Clipboard from "expo-clipboard";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { CaretLeft, Check, Copy, Eye, EyeSlash, NotePencil, Star, Trash } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, Button, Card, SectionLabel } from "@/components/ui";
-import { categoryMeta, findVaultItem, getVisibleVaultItems, moveVaultItemToRecycleBin, toggleVaultFavorite } from "@/data/vault";
+import { findVaultItem, getVisibleVaultItems, moveVaultItemToRecycleBin, toggleVaultFavorite, VaultCategory } from "@/data/vault";
 import { useLanguage } from "@/providers/language";
-import { colors, spacing } from "@/theme/tokens";
+import { useTheme } from "@/providers/theme";
+import { spacing, ThemeColors } from "@/theme/tokens";
 
 const getPasswordScore = (password?: string) => {
   if (!password) return 0;
@@ -23,19 +24,22 @@ const getPasswordScore = (password?: string) => {
 // 密码详情页：展示单条记录、复制/显隐密码、健康状态和历史记录。
 export default function PasswordDetailScreen() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [revealed, setRevealed] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [copiedKey, setCopiedKey] = useState<null | "account" | "password" | "quick-copy">(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const resetCopyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 兜底到第一条演示数据，避免直接访问不存在的动态路由时报空白页。
   const item = useMemo(() => findVaultItem(id) ?? getVisibleVaultItems()[0], [id, refreshVersion]);
   const passwordScore = getPasswordScore(item.password);
   const healthColor = passwordScore >= 4 ? colors.success : passwordScore >= 2 ? colors.warning : colors.danger;
   const healthTitle = passwordScore >= 4 ? t("detail.strongPassword") : passwordScore >= 2 ? t("detail.mediumPassword") : t("detail.weakPassword");
-  const meta = categoryMeta[item.category];
-  const categoryColor = meta.color;
-  const categorySoft = meta.soft;
+  const categoryAccent = getCategoryAccent(item.category, colors);
+  const categoryColor = categoryAccent.color;
+  const categorySoft = categoryAccent.soft;
   const categoryLabel = t(
     item.category === "website"
       ? "category.website"
@@ -97,17 +101,13 @@ export default function PasswordDetailScreen() {
   };
 
   const confirmMoveToRecycleBin = () => {
-    Alert.alert(t("detail.recycleConfirmTitle"), t("detail.recycleConfirmMessage"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("detail.moveToRecycleBin"),
-        style: "destructive",
-        onPress: () => {
-          moveVaultItemToRecycleBin(item.id);
-          router.replace("/(tabs)");
-        },
-      },
-    ]);
+    setDeleteConfirmVisible(true);
+  };
+
+  const moveToRecycleBin = () => {
+    setDeleteConfirmVisible(false);
+    moveVaultItemToRecycleBin(item.id);
+    router.replace("/(tabs)");
   };
 
   const editItem = () => {
@@ -195,8 +195,35 @@ export default function PasswordDetailScreen() {
 
         <Button variant="secondary" onPress={confirmMoveToRecycleBin}>{t("detail.moveToRecycleBin")}</Button>
       </ScrollView>
+
+      <Modal animationType="fade" transparent visible={deleteConfirmVisible} onRequestClose={() => setDeleteConfirmVisible(false)}>
+        <View style={styles.modalRoot}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setDeleteConfirmVisible(false)} />
+          <View style={styles.confirmCard}>
+            <View style={styles.confirmIcon}>
+              <Trash size={22} color={colors.danger} weight="regular" />
+            </View>
+            <Text style={styles.confirmTitle}>{t("detail.recycleConfirmTitle")}</Text>
+            <Text style={styles.confirmMessage}>{t("detail.recycleConfirmMessage")}</Text>
+            <View style={styles.confirmActions}>
+              <Button variant="secondary" onPress={() => setDeleteConfirmVisible(false)} style={styles.confirmButton}>
+                {t("common.cancel")}
+              </Button>
+              <Pressable onPress={moveToRecycleBin} style={({ pressed }) => [styles.deleteButton, pressed && styles.actionPressed]}>
+                <Text style={styles.deleteButtonText}>{t("detail.moveToRecycleBin")}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
+}
+
+function getCategoryAccent(category: VaultCategory, colors: ThemeColors) {
+  if (category === "app") return { color: colors.purple, soft: colors.purpleSoft };
+  if (category === "wifi") return { color: colors.green, soft: colors.greenSoft };
+  return { color: colors.primary, soft: colors.primarySoft };
 }
 
 function formatDateLabel(date: string, t: ReturnType<typeof useLanguage>["t"]) {
@@ -213,6 +240,9 @@ function getHistoryLabel(label: "current" | "previous" | "older", t: ReturnType<
 }
 
 function DetailRow({ label, value, copied = false, onCopy }: { label: string; value: string; copied?: boolean; onCopy?: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   // 可复制字段保持同一行样式，减少详情卡片里的重复 JSX。
   return (
     <View style={styles.detailRow}>
@@ -244,6 +274,8 @@ function Action({
   danger?: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const color = copied ? colors.success : danger ? colors.danger : active ? colors.favorite : colors.primary;
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.action, copied && styles.actionDone, pressed && styles.actionPressed]}>
@@ -259,7 +291,8 @@ function Action({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   nav: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", padding: spacing.lg },
   back: { marginLeft: -spacing.sm },
@@ -292,4 +325,68 @@ const styles = StyleSheet.create({
   historyDivider: { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth },
   historyTitle: { color: colors.text, fontSize: 14, fontWeight: "700" },
   historyDate: { color: colors.textSubtle, fontSize: 13 },
+  modalRoot: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.58)",
+  },
+  confirmCard: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing.md,
+    maxWidth: 360,
+    padding: spacing.xl,
+    width: "100%",
+  },
+  confirmIcon: {
+    alignItems: "center",
+    backgroundColor: colors.danger === "#DC2626" ? "#FCEBEB" : "#3C1D24",
+    borderRadius: 14,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  confirmTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  confirmMessage: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+  confirmActions: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginTop: spacing.sm,
+    width: "100%",
+  },
+  confirmButton: {
+    flex: 1,
+    height: 44,
+  },
+  deleteButton: {
+    alignItems: "center",
+    backgroundColor: colors.danger,
+    borderRadius: 12,
+    flex: 1,
+    height: 44,
+    justifyContent: "center",
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
 });

@@ -1,13 +1,14 @@
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowClockwise, CaretLeft, CheckCircle, Copy, Star } from "phosphor-react-native";
+import { ArrowClockwise, CaretLeft, CheckCircle, Copy, Star, WarningCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, GestureResponderEvent, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { GestureResponderEvent, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Card, Field, PasswordField, SectionLabel } from "@/components/ui";
 import { addVaultItem, findVaultItem, updateVaultItem, VaultCategory } from "@/data/vault";
 import { useLanguage } from "@/providers/language";
-import { colors, radii, spacing } from "@/theme/tokens";
+import { useTheme } from "@/providers/theme";
+import { radii, spacing, ThemeColors } from "@/theme/tokens";
 
 const categories: VaultCategory[] = ["website", "app", "wifi"];
 const MIN_LENGTH = 8;
@@ -33,6 +34,7 @@ const defaultCharacters: CharacterState = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+type SliderPosition = { pageX?: number; locationX?: number };
 
 // 分类字段文案集中映射，避免 JSX 里到处散落三元判断。
 const getCategoryLabelKey = (category: VaultCategory) => {
@@ -84,6 +86,8 @@ const getPasswordStrength = (password: string) => {
 // 新增密码页：按分类动态展示字段，并内置一个可直接套用的密码生成器。
 export default function AddPasswordScreen() {
   const { t, language } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     id?: string;
     category?: VaultCategory;
@@ -107,6 +111,7 @@ export default function AddPasswordScreen() {
   const [passwordLength, setPasswordLength] = useState(DEFAULT_LENGTH);
   const [generatedLength, setGeneratedLength] = useState(DEFAULT_LENGTH);
   const [isSliding, setIsSliding] = useState(false);
+  const [validationVisible, setValidationVisible] = useState(false);
   const [characters, setCharacters] = useState<CharacterState>(defaultCharacters);
   const [generated, setGenerated] = useState(() => generatePassword(DEFAULT_LENGTH, defaultCharacters));
   const sliderTouchRef = useRef<View>(null);
@@ -146,11 +151,16 @@ export default function AddPasswordScreen() {
     [measureSlider],
   );
 
-  const setLengthFromPosition = useCallback((event: GestureResponderEvent, commitGenerated = false, metrics = sliderMetricsRef.current) => {
+  const setLengthFromPosition = useCallback((position: SliderPosition, commitGenerated = false, metrics = sliderMetricsRef.current) => {
     if (metrics.width <= 0) return;
 
     // 使用固定的页面坐标计算滑块位置，避免命中圆点/填充条时 locationX 抖动。
-    const offsetX = metrics.pageX > 0 ? event.nativeEvent.pageX - metrics.pageX : event.nativeEvent.locationX;
+    const offsetX =
+      metrics.pageX > 0 && typeof position.pageX === "number"
+        ? position.pageX - metrics.pageX
+        : position.locationX;
+    if (typeof offsetX !== "number") return;
+
     const nextProgress = clamp(offsetX / metrics.width, 0, 1);
     const nextLength = Math.round(MIN_LENGTH + nextProgress * (MAX_LENGTH - MIN_LENGTH));
     setPasswordLength((current) => (current === nextLength ? current : nextLength));
@@ -161,20 +171,40 @@ export default function AddPasswordScreen() {
 
   const startSliding = useCallback(
     (event: GestureResponderEvent) => {
+      const position = {
+        pageX: event.nativeEvent?.pageX,
+        locationX: event.nativeEvent?.locationX,
+      };
       setIsSliding(true);
       sliderTouchRef.current?.measure((_, __, width, ___, pageX) => {
         const metrics = { pageX, width };
         sliderMetricsRef.current = metrics;
-        setLengthFromPosition(event, false, metrics);
+        setLengthFromPosition(position, false, metrics);
       });
     },
     [setLengthFromPosition],
   );
 
   const finishSliding = useCallback(
-    (event: GestureResponderEvent) => {
-      setLengthFromPosition(event, true);
+    (event?: GestureResponderEvent) => {
+      setLengthFromPosition(
+        {
+          pageX: event?.nativeEvent?.pageX,
+          locationX: event?.nativeEvent?.locationX,
+        },
+        true,
+      );
       setIsSliding(false);
+    },
+    [setLengthFromPosition],
+  );
+
+  const moveSlider = useCallback(
+    (event: GestureResponderEvent) => {
+      setLengthFromPosition({
+        pageX: event.nativeEvent?.pageX,
+        locationX: event.nativeEvent?.locationX,
+      });
     },
     [setLengthFromPosition],
   );
@@ -212,10 +242,7 @@ export default function AddPasswordScreen() {
     const trimmedPassword = password.trim();
 
     if (!trimmedTitle || !trimmedPassword) {
-      Alert.alert(
-        language === "zh" ? "请补全信息" : "Missing information",
-        language === "zh" ? "标题和密码不能为空。" : "Title and password cannot be empty.",
-      );
+      setValidationVisible(true);
       return;
     }
 
@@ -259,6 +286,9 @@ export default function AddPasswordScreen() {
 
     router.replace(`/password-detail/${id}`);
   }, [account, category, editingItem, favorite, language, password, title, websiteUrl]);
+
+  const validationTitle = language === "zh" ? "请补全信息" : "Missing information";
+  const validationMessage = language === "zh" ? "标题和密码不能为空。" : "Title and password cannot be empty.";
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -357,7 +387,7 @@ export default function AddPasswordScreen() {
             onResponderRelease={finishSliding}
             onResponderTerminate={finishSliding}
             onResponderTerminationRequest={() => false}
-            onResponderMove={setLengthFromPosition}
+            onResponderMove={moveSlider}
             onStartShouldSetResponder={() => true}
             style={styles.sliderTouchArea}
           >
@@ -388,11 +418,34 @@ export default function AddPasswordScreen() {
 
         <Button onPress={handleSave} style={styles.bottomSave}>{t("addPassword.savePassword")}</Button>
       </ScrollView>
+
+      <Modal animationType="fade" transparent visible={validationVisible} onRequestClose={() => setValidationVisible(false)}>
+        <View style={styles.modalRoot}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setValidationVisible(false)} />
+          <View style={styles.validationCard}>
+            <View style={styles.validationHeader}>
+              <View style={styles.validationIcon}>
+                <WarningCircle size={22} color={colors.warning} weight="bold" />
+              </View>
+              <Text style={styles.validationTitle}>{validationTitle}</Text>
+            </View>
+            <Text style={styles.validationMessage}>{validationMessage}</Text>
+            <View style={styles.validationActions}>
+              <Button onPress={() => setValidationVisible(false)} style={styles.validationButton}>
+                {t("common.gotIt")}
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 function SettingSwitch({ title, subtitle, value, onPress, icon }: { title: string; subtitle: string; value: boolean; onPress: () => void; icon?: "star" }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   // 复用高级选项行：普通开关和收藏星标共用同一行布局。
   return (
     <Pressable onPress={onPress}>
@@ -413,7 +466,8 @@ function SettingSwitch({ title, subtitle, value, onPress, icon }: { title: strin
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   nav: {
     alignItems: "center",
@@ -471,7 +525,7 @@ const styles = StyleSheet.create({
   sliderFill: { backgroundColor: colors.primary, borderRadius: 2, height: 4 },
   sliderKnob: {
     backgroundColor: colors.primary,
-    borderColor: "#FFFFFF",
+    borderColor: colors.bg,
     borderRadius: 10,
     borderWidth: 2,
     height: 20,
@@ -505,7 +559,60 @@ const styles = StyleSheet.create({
   switchSub: { color: colors.textSubtle, fontSize: 12, marginTop: 3 },
   toggle: { backgroundColor: colors.border, borderRadius: 11, height: 22, justifyContent: "center", padding: 2, width: 40 },
   toggleOn: { backgroundColor: colors.primary },
-  knob: { backgroundColor: "#FFFFFF", borderRadius: 9, height: 18, width: 18 },
+  knob: { backgroundColor: colors.bg, borderRadius: 9, height: 18, width: 18 },
   knobOn: { alignSelf: "flex-end" },
   bottomSave: { marginTop: spacing.xl },
+  modalRoot: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.58)",
+  },
+  validationCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing.lg,
+    maxWidth: 360,
+    padding: spacing.xl,
+    width: "100%",
+  },
+  validationHeader: {
+    alignItems: "center",
+    flexDirection: "column",
+    gap: spacing.md,
+  },
+  validationIcon: {
+    alignItems: "center",
+    backgroundColor: colors.warningSoft,
+    borderRadius: radii.md,
+    height: 38,
+    justifyContent: "center",
+    width: 38,
+  },
+  validationTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  validationMessage: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+  validationActions: {
+    alignItems: "center",
+  },
+  validationButton: {
+    height: 42,
+    minWidth: 104,
+    paddingHorizontal: spacing.lg,
+  },
 });
