@@ -1,10 +1,10 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "buildNumber": 4,
-  "apkUrl": "https://github.com/HackenLeung/securevault-mobile/releases/download/v1.0.1/securevault1.0.1.apk",
-  "releaseUrl": "https://github.com/HackenLeung/securevault-mobile/releases/tag/v1.0.1",
+  "apkUrl": "https://github.com/HackenLeung/securevault-mobile/releases/download/v1.0.2/securevault1.0.2.apk",
+  "releaseUrl": "https://github.com/HackenLeung/securevault-mobile/releases/tag/v1.0.2",
   "forceUpdate": false,
   "changelog": [
-    "更新弹窗UI设计，提升用户体验。"
+    "修复部分控件在深色模式下使用样式"
   ]
 }
